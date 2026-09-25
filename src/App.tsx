@@ -10,6 +10,7 @@ import { HomeDashboard } from './components/dashboard/HomeDashboard';
 import { KpiOverview } from './components/kpi/KpiOverview';
 import { MendanModule } from './components/mendan/MendanModule';
 import { AwardsModule } from './components/awards/AwardsModule';
+import { EvaluationModule } from './components/evaluation/EvaluationModule';
 import { UserProfileModule } from './components/profile/UserProfileModule';
 import { AdminTeamModule } from './components/admin/AdminTeamModule';
 import { AdminConfigModule } from './components/admin/AdminConfigModule';

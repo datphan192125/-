@@ -11,13 +11,16 @@ import {
   KpiThresholds,
   AuditLog,
   KpiImportRow,
+  EvaluationCriterion,
+  MemberEvaluationRecord,
+  CriteriaProposal,
 } from '../types';
 
 const STORAGE_KEYS = {
-  USERS: 'dym_users_v4',
+  USERS: 'dym_users_v5',
   TEAMS: 'dym_teams_v2',
   KPI_RECORDS: 'dym_kpi_records_v3',
-  MENDAN_RECORDS: 'dym_mendan_records_v7',
+  MENDAN_RECORDS: 'dym_mendan_records_v8',
   AWARD_CATEGORIES: 'dym_award_categories_v2',
   AWARD_PROPOSALS: 'dym_award_proposals_v2',
   NOTIFICATIONS: 'dym_notifications_v2',
@@ -26,6 +29,9 @@ const STORAGE_KEYS = {
   KPI_THRESHOLDS: 'dym_kpi_thresholds_v2',
   AUDIT_LOGS: 'dym_audit_logs_v2',
   CURRENT_USER_ID: 'dym_current_user_id_v2',
+  EVALUATION_CRITERIA: 'dym_eval_criteria_v1',
+  MEMBER_EVALUATIONS: 'dym_member_evals_v1',
+  CRITERIA_PROPOSALS: 'dym_criteria_proposals_v1',
 };
 
 // Initial Seed Data matching spec & PDF
@@ -103,6 +109,21 @@ export const INITIAL_TEAMS: Team[] = [
 ];
 
 export const INITIAL_USERS: User[] = [
+  {
+    id: 'user-master',
+    employee_code: 'DYM-000',
+    full_name: 'Mizutani Yuta',
+    email: 'mizutani.y@dym.jp',
+    avatar_url: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80',
+    rank: 'A1',
+    japanese_level: 'Bản ngữ',
+    role: 'master',
+    view_scope: 'all',
+    allowed_team_ids: [],
+    team_id: 'team-gs',
+    is_active: true,
+    position: 'Tổng Quản Lý Tập Đoàn & Đại Diện Ban Giám Đốc (Master)',
+  },
   {
     id: 'user-admin',
     employee_code: 'DYM-001',
@@ -890,6 +911,179 @@ export const INITIAL_AUDIT_LOGS: AuditLog[] = [
   },
 ];
 
+export const INITIAL_EVALUATION_CRITERIA: EvaluationCriterion[] = [
+  {
+    id: 'crit-task',
+    name: 'タスク処理能力',
+    vietnamese_name: 'Khả năng xử lý tác vụ',
+    weight: 5,
+    order: 1,
+    levels: {
+      level1: '一部の限定されたタスクのみ対応できる\n新しい依頼に対しては多くのサポートを要する\n要件がわずかに変更された場合でも対応できないことがある',
+      level2: '基本的なタスクは概ね対応できる\nサポートがあれば新しいタスクにも対応できる\n自力での対応力はまだ限定的である',
+      level3: '複数種類のタスクを安定して対応できる\n異なる要件にも柔軟に対応できる\nサポートへの依存が少ない',
+      level4: '複数の複雑な依頼を自力で対応できる\n前例のない、または要件が不明確な依頼にも対応できる\n他メンバーを支援・育成し、能力向上を図ることができる',
+      level5: '複数の高度かつ複雑な依頼を自力で対応できる\n前例のない、または要件が不明確な依頼にも安定して対応できる\n複数のメンバーを支援・育成し、能力向上に貢献できる\n知識共有を主導し、チーム全体の対応力を向上させることができる',
+    },
+  },
+  {
+    id: 'crit-flexibility',
+    name: '柔軟性・主体性',
+    vietnamese_name: 'Tính linh hoạt & Chủ động',
+    weight: 4,
+    order: 2,
+    levels: {
+      level1: '状況が変化すると対応できない\n指示を待つ姿勢が強く、主体的な行動が見られない',
+      level2: '指示やガイダンスがあれば対応できる\n指示・指導への依存度が高い',
+      level3: '担当業務を安定して遂行できる\n責任範囲内で発生する問題に対して主体的に対応できる\n指示があれば他メンバーを支援できる',
+      level4: '担当業務を確実に遂行できる\n自ら追加の業務を引き受けたり、他メンバーを支援したりできる\n全体最適を考慮し、タスクの優先順位を主体的に調整できる',
+      level5: '複雑な状況や高いプレッシャー下でも柔軟に対応できる\n自ら追加業務を引き受け、または他メンバーを支援できる\n緊急時には優先順位を自ら判断できる\n状況に応じて業務を適切に調整・連携できる\nチームの処理速度や安定性を高める対応策を主体的に提案できる',
+    },
+  },
+  {
+    id: 'crit-horenso',
+    name: '報連相',
+    vietnamese_name: 'Hou-Ren-So (Báo cáo - Liên lạc - Thảo luận)',
+    weight: 4,
+    order: 3,
+    levels: {
+      level1: '求められた場合のみ報告する\n情報共有が不足していることが多い',
+      level2: '報告・連絡・相談が遅れることがある\n伝え方が分かりにくい場合がある',
+      level3: '問題が発生した際には適切に報告できる\n基本的な情報共有はできている',
+      level4: '適切なタイミングで主体的に報告・連絡・相談ができる\n要点を押さえ、分かりやすく伝えることができる',
+      level5: '状況を先読みし、適切な内容で報告・連絡・相談ができる\n相手に応じて伝え方を調整できる\n他メンバーの報告・共有を支援し、質の向上に貢献できる',
+    },
+  },
+  {
+    id: 'crit-quality',
+    name: '品質（ミス）',
+    vietnamese_name: 'Chất lượng công việc (Lỗi sai)',
+    weight: 3,
+    order: 4,
+    levels: {
+      level1: '2ミス以上',
+      level2: '1ミス',
+      level3: '0ミス',
+      level4: '0ミス\nチェックリスト、早期報告、ダブルチェック等の具体的な行動により、ミスを主体的に予防できる\nミス防止に向けた行動が評価期間中に確認できる',
+      level5: '0ミス\n品質リスクが発生した際に、他メンバーを支援できる\nミス防止策を組織化・展開し、複数のメンバーのリスク低減に貢献できる\nミス防止策が複数のメンバー/複数のタスクにおいて繰り返し適用されている',
+    },
+  },
+  {
+    id: 'crit-japanese',
+    name: 'コミュニケーション能力（日本語）',
+    vietnamese_name: 'Giao tiếp tiếng Nhật nghiệp vụ',
+    weight: 2,
+    order: 5,
+    levels: {
+      level1: '簡単なメッセージのみ対応できる\n依頼内容を誤解したり、誤って伝達したりすることがある\n他者による再説明や確認が必要',
+      level2: 'メッセージで内容を理解・伝達できる\nサポートがあれば、対面またはZoomでの会話が可能',
+      level3: 'メッセージで内容を理解・伝達できる\n対面またはZoomでの会話が可能\n主な内容は理解できるが、確認・明確化は受動的',
+      level4: 'メッセージで内容を理解・伝達できる\n対面またはZoomでの会話が可能\n主体的に質問・確認・明確化ができる\n他メンバーのやり取りを支援できる',
+      level5: 'チャットで内容を正確に理解・伝達できる\n業務タスクに限らず、日本語での会議に参加できる\n目的・背景を理解し、チームへ正確に共有できる\n複数人に対して双方向の情報調整・進行ができる',
+    },
+  },
+  {
+    id: 'crit-kpi',
+    name: 'KPI（目標達成率）',
+    vietnamese_name: 'Tỷ lệ hoàn thành mục tiêu KPI',
+    weight: 2,
+    order: 6,
+    levels: {
+      level1: '80%',
+      level2: '90%',
+      level3: '100%',
+      level4: '110%',
+      level5: '120%',
+    },
+  },
+  {
+    id: 'crit-late',
+    name: '遅刻',
+    vietnamese_name: 'Kỷ luật giờ giấc (Vi phạm đi muộn)',
+    weight: 0,
+    order: 7,
+    levels: {
+      level1: '初回面談後 2回目の違反',
+      level2: '初回面談後 3回目の違反',
+      level3: '初回面談後 4回目の違反',
+      level4: '初回面談後 5回目の違反',
+      level5: '初回面談後 6回目の違反',
+    },
+  },
+];
+
+// Sample evaluation records matching exact image rubric score (83 points for user-admin)
+export const INITIAL_MEMBER_EVALUATIONS: MemberEvaluationRecord[] = [
+  {
+    id: 'eval-admin-q1',
+    user_id: 'user-admin',
+    evaluator_id: 'user-master',
+    team_id: 'team-gs',
+    quarter_id: 'Q1',
+    year: 2026,
+    scores: {
+      'crit-task': 5, // 5*5 = 25
+      'crit-flexibility': 4, // 4*4 = 16
+      'crit-horenso': 4, // 4*4 = 16
+      'crit-quality': 4, // 4*3 = 12
+      'crit-japanese': 4, // 4*2 = 8
+      'crit-kpi': 3, // 3*2 = 6
+      'crit-late': 0, // 0*0 = 0
+    },
+    total_score: 83, // Total: 25 + 16 + 16 + 12 + 8 + 6 + 0 = 83 (matches image exactly!)
+    rank_grade: 'A',
+    note: 'Thành tích vận hành xuất sắc, năng lực xử lý tác vụ độc lập tối đa.',
+    status: 'finalized',
+    updated_at: '2026-03-24T10:00:00Z',
+  },
+  {
+    id: 'eval-dung-q1',
+    user_id: 'user-pham-thi-d',
+    evaluator_id: 'user-sato',
+    team_id: 'team-2s',
+    quarter_id: 'Q1',
+    year: 2026,
+    scores: {
+      'crit-task': 5, // 25
+      'crit-flexibility': 5, // 20
+      'crit-horenso': 5, // 20
+      'crit-quality': 5, // 15
+      'crit-japanese': 5, // 10
+      'crit-kpi': 4, // 8
+      'crit-late': 0, // 0
+    },
+    total_score: 98,
+    rank_grade: 'S',
+    note: 'MVP quý 1, xử lý hồ sơ VIP trọn vẹn và đạt điểm giao tiếp tiếng Nhật tối đa.',
+    status: 'finalized',
+    updated_at: '2026-03-24T11:00:00Z',
+  },
+  {
+    id: 'eval-bich-q1',
+    user_id: 'user-tran-thi-b',
+    evaluator_id: 'user-sato',
+    team_id: 'team-2a',
+    quarter_id: 'Q1',
+    year: 2026,
+    scores: {
+      'crit-task': 5, // 25
+      'crit-flexibility': 5, // 20
+      'crit-horenso': 4, // 16
+      'crit-quality': 4, // 12
+      'crit-japanese': 4, // 8
+      'crit-kpi': 4, // 8
+      'crit-late': 0, // 0
+    },
+    total_score: 89,
+    rank_grade: 'A',
+    note: 'Sáng kiến Kaizen tự động hoá phiếu nhập mang lại hiệu quả cao cho toàn nhóm.',
+    status: 'finalized',
+    updated_at: '2026-03-24T12:00:00Z',
+  },
+];
+
+export const INITIAL_CRITERIA_PROPOSALS: CriteriaProposal[] = [];
+
 // Helper to get from local storage or fallback to initial
 function getFromStorage<T>(key: string, fallback: T): T {
   try {
@@ -943,6 +1137,7 @@ export const storageService = {
     return merged.map((r) => ({
       ...r,
       quarter_id: r.quarter_id || 'Q1',
+      visibility_scope: r.visibility_scope || 'member_and_leader',
     }));
   },
   saveMendanRecords: (records: MendanRecord[]) => setToStorage(STORAGE_KEYS.MENDAN_RECORDS, records),
@@ -975,6 +1170,21 @@ export const storageService = {
   getAuditLogs: (): AuditLog[] => getFromStorage(STORAGE_KEYS.AUDIT_LOGS, INITIAL_AUDIT_LOGS),
   saveAuditLogs: (logs: AuditLog[]) => setToStorage(STORAGE_KEYS.AUDIT_LOGS, logs),
 
+  getEvaluationCriteria: (): EvaluationCriterion[] =>
+    getFromStorage(STORAGE_KEYS.EVALUATION_CRITERIA, INITIAL_EVALUATION_CRITERIA),
+  saveEvaluationCriteria: (items: EvaluationCriterion[]) =>
+    setToStorage(STORAGE_KEYS.EVALUATION_CRITERIA, items),
+
+  getMemberEvaluations: (): MemberEvaluationRecord[] =>
+    getFromStorage(STORAGE_KEYS.MEMBER_EVALUATIONS, INITIAL_MEMBER_EVALUATIONS),
+  saveMemberEvaluations: (records: MemberEvaluationRecord[]) =>
+    setToStorage(STORAGE_KEYS.MEMBER_EVALUATIONS, records),
+
+  getCriteriaProposals: (): CriteriaProposal[] =>
+    getFromStorage(STORAGE_KEYS.CRITERIA_PROPOSALS, INITIAL_CRITERIA_PROPOSALS),
+  saveCriteriaProposals: (proposals: CriteriaProposal[]) =>
+    setToStorage(STORAGE_KEYS.CRITERIA_PROPOSALS, proposals),
+
   addAuditLog: (log: Omit<AuditLog, 'id' | 'timestamp'>) => {
     const logs = storageService.getAuditLogs();
     const newLog: AuditLog = {
@@ -1006,6 +1216,9 @@ export const storageService = {
     localStorage.removeItem(STORAGE_KEYS.KPI_THRESHOLDS);
     localStorage.removeItem(STORAGE_KEYS.AUDIT_LOGS);
     localStorage.removeItem(STORAGE_KEYS.CURRENT_USER_ID);
+    localStorage.removeItem(STORAGE_KEYS.EVALUATION_CRITERIA);
+    localStorage.removeItem(STORAGE_KEYS.MEMBER_EVALUATIONS);
+    localStorage.removeItem(STORAGE_KEYS.CRITERIA_PROPOSALS);
   },
 };
 

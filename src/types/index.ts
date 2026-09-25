@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'leader' | 'subleader' | 'member';
+export type Role = 'master' | 'admin' | 'leader' | 'subleader' | 'member';
 
 export type ViewScope = 'all' | '2ka_all' | 'own_team' | 'custom';
 
@@ -100,6 +100,8 @@ export interface KpiRecord {
 }
 
 export type MendanStatus = 'not_started' | 'pre_mendan' | 'completed';
+export type MendanVisibilityScope = 'member_and_leader' | 'leader_only' | 'manager_only';
+export type MendanVisibilityType = 'public' | 'private';
 
 export interface MendanRecord {
   id: string;
@@ -111,6 +113,9 @@ export interface MendanRecord {
   scheduled_date: string;
   actual_date?: string;
   status: MendanStatus; // 'not_started' (Chưa đánh giá), 'pre_mendan' (Đã đánh giá), 'completed' (Hoàn thành mendan)
+  visibility_scope?: MendanVisibilityScope;
+  visibility_type?: MendanVisibilityType; // 'public' (Công Khai: Nhân sự + Người đánh giá + người được chọn) | 'private' (Không công khai: Chỉ người đánh giá)
+  allowed_viewer_ids?: string[]; // Danh sách thành viên khác được chọn thêm để xem
   
   // Leader/Subleader preparation assessment for Manager
   leader_evaluator_id?: string;
@@ -135,6 +140,48 @@ export interface MendanRecord {
   
   created_at: string;
   updated_at: string;
+}
+
+export interface EvaluationCriterion {
+  id: string;
+  name: string; // e.g. タスク処理能力
+  vietnamese_name: string; // e.g. Khả năng xử lý tác vụ
+  weight: number; // e.g. 5, 4, 4, 3, 2, 2, 0
+  order: number;
+  levels: {
+    level1: string;
+    level2: string;
+    level3: string;
+    level4: string;
+    level5: string;
+  };
+}
+
+export interface MemberEvaluationRecord {
+  id: string;
+  user_id: string;
+  evaluator_id: string;
+  team_id: string;
+  quarter_id: string; // e.g. 'Q1'
+  year: number;
+  scores: Record<string, number>; // criterionId -> chosen level (1..5 or 0..5)
+  total_score: number;
+  rank_grade?: string; // 'S' | 'A' | 'B' | 'C' | 'D'
+  note?: string;
+  status: 'draft' | 'finalized';
+  updated_at: string;
+}
+
+export interface CriteriaProposal {
+  id: string;
+  proposed_by: string;
+  proposed_by_name: string;
+  created_at: string;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewed_by?: string;
+  reviewed_at?: string;
+  review_note?: string;
+  criteria: EvaluationCriterion[];
 }
 
 export interface AwardCategory {

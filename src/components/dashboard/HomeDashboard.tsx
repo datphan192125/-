@@ -197,7 +197,7 @@ export const HomeDashboard: React.FC = () => {
             <div className="flex items-center justify-between pb-3 border-b border-[#F0F0EE]">
               <h2 className="text-xs font-bold text-[#1C1C1A] uppercase tracking-wider flex items-center space-x-1.5">
                 <Clock size={14} className="text-[#4A4A46]" />
-                <span>Lịch Phỏng Vấn Mendan Sắp Tới</span>
+                <span>Lịch Mendan (面談) Sắp Tới</span>
               </h2>
               <button
                 onClick={() => setActiveTab('mendan')}
@@ -210,7 +210,7 @@ export const HomeDashboard: React.FC = () => {
             <div className="space-y-3 mt-4">
               {upcomingMendans.length === 0 ? (
                 <div className="py-8 text-center text-xs text-[#8A8A85]">
-                  Tất cả các cuộc phỏng vấn Mendan đã hoàn thành.
+                  Tất cả các lịch trao đổi Mendan đã hoàn thành.
                 </div>
               ) : (
                 upcomingMendans.map((m) => {
@@ -259,7 +259,7 @@ export const HomeDashboard: React.FC = () => {
             className="p-3.5 rounded-lg border border-[#E7E7E4] hover:border-[#7c9cd0] hover:bg-[#7c9cd0]/5 transition-all text-left bg-[#FAFAF9] group"
           >
             <Calendar size={16} className="text-[#1C1C1A] group-hover:text-[#7c9cd0] mb-2 transition-colors" />
-            <div className="font-bold text-[#1C1C1A] group-hover:text-[#24487c] transition-colors">2. Phỏng Vấn Mendan (面談)</div>
+            <div className="font-bold text-[#1C1C1A] group-hover:text-[#24487c] transition-colors">2. Đánh Giá & Mendan (面談)</div>
             <div className="text-[11px] text-[#8A8A85] mt-0.5">Điểm tốt, cải thiện & Memo định kỳ</div>
           </button>
 

@@ -12,6 +12,11 @@ import {
   AuditLog,
   ProposalStatus,
   KpiImportRow,
+  MendanStatus,
+  MendanVisibilityType,
+  EvaluationCriterion,
+  MemberEvaluationRecord,
+  CriteriaProposal,
 } from '../types';
 import { storageService, excelService } from '../services/storage';
 import { notificationPoller } from '../services/notificationPoller';
@@ -54,14 +59,26 @@ interface AppContextType {
   setSelectedTeamId: (teamId: string | 'all') => void;
 
   // Permissions & Scopes
+  isMaster: boolean;
   isAdmin: boolean;
   isLeaderOrAdmin: boolean;
+  canCreateMendan: boolean;
   canViewTeam: (teamId: string) => boolean;
   visibleTeams: Team[];
   visibleUsers: User[];
   visibleKpiRecords: KpiRecord[];
 
+  // Evaluation Rubric Data
+  evaluationCriteria: EvaluationCriterion[];
+  memberEvaluations: MemberEvaluationRecord[];
+  criteriaProposals: CriteriaProposal[];
+  saveMemberEvaluation: (record: MemberEvaluationRecord) => void;
+  updateEvaluationCriteria: (criteria: EvaluationCriterion[], note?: string) => { status: 'applied' | 'proposed' };
+  reviewCriteriaProposal: (proposalId: string, status: 'approved' | 'rejected', reviewNote?: string) => void;
+
   // Actions
+  updateMendanVisibility: (mendanId: string, visibilityType: MendanVisibilityType, allowedViewerIds: string[]) => void;
+  updateMendanStatus: (mendanId: string, status: MendanStatus) => void;
   bulkApplyImportedKpis: (
     rows: KpiImportRow[],
     filename: string,
@@ -102,6 +119,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string>('user-admin');
 
+  // Evaluation Rubric Data
+  const [evaluationCriteria, setEvaluationCriteria] = useState<EvaluationCriterion[]>([]);
+  const [memberEvaluations, setMemberEvaluations] = useState<MemberEvaluationRecord[]>([]);
+  const [criteriaProposals, setCriteriaProposals] = useState<CriteriaProposal[]>([]);
+
   // Navigation
   const [activeTab, setActiveTab] = useState<NavTab>('kpi'); // Default to 'Thành Tích' as shown in the screenshot
 
@@ -132,6 +154,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setQuarterConfigs(storageService.getQuarterConfigs());
     setKpiThresholds(storageService.getKpiThresholds());
     setAuditLogs(storageService.getAuditLogs());
+    setEvaluationCriteria(storageService.getEvaluationCriteria());
+    setMemberEvaluations(storageService.getMemberEvaluations());
+    setCriteriaProposals(storageService.getCriteriaProposals());
     const initialUid = storageService.getCurrentUserId();
     setCurrentUserId(initialUid);
 
@@ -165,8 +190,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     );
   };
 
-  const isAdmin = currentUser?.role === 'admin';
-  const isLeaderOrAdmin = currentUser?.role === 'admin' || currentUser?.role === 'leader' || currentUser?.role === 'subleader';
+  const isMaster = currentUser?.role === 'master';
+  const isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'master';
+  const isLeaderOrAdmin =
+    currentUser?.role === 'admin' ||
+    currentUser?.role === 'master' ||
+    currentUser?.role === 'leader' ||
+    currentUser?.role === 'subleader';
+  const canCreateMendan = currentUser?.role === 'admin' || currentUser?.role === 'master';
 
   // Permission / ViewScope checking according to spec:
   // 'all': See entire department (default for Admin)
@@ -381,6 +412,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         next_goals: record.next_goals || '',
         pre_notes: record.pre_notes || '',
         memo: record.memo || '',
+        visibility_scope: record.visibility_scope || 'member_and_leader',
         created_at: now,
         updated_at: now,
       };
@@ -569,6 +601,147 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     storageService.saveNotifications(list);
   };
 
+  const saveMemberEvaluation = (record: MemberEvaluationRecord) => {
+    const list = [...memberEvaluations];
+    const idx = list.findIndex(
+      (e) => e.user_id === record.user_id && e.quarter_id === record.quarter_id
+    );
+    const now = new Date().toISOString();
+    const newRecord = { ...record, updated_at: now };
+    if (idx >= 0) {
+      list[idx] = newRecord;
+    } else {
+      list.unshift(newRecord);
+    }
+    setMemberEvaluations(list);
+    storageService.saveMemberEvaluations(list);
+    triggerToast(
+      'Đã Lưu Đánh Giá Điểm',
+      `Đã lưu kết quả đánh giá năng lực (${record.total_score} điểm - Hạng ${record.rank_grade || 'A'}).`
+    );
+  };
+
+  const updateEvaluationCriteria = (
+    criteria: EvaluationCriterion[],
+    note?: string
+  ): { status: 'applied' | 'proposed' } => {
+    if (isMaster) {
+      setEvaluationCriteria(criteria);
+      storageService.saveEvaluationCriteria(criteria);
+      triggerToast('Đã Cập Nhật Tiêu Chuẩn', 'Master đã trực tiếp lưu cấu hình bảng tiêu chuẩn & thang điểm.');
+      return { status: 'applied' };
+    }
+
+    // Admin creates a proposal that requires Master approval
+    const proposal: CriteriaProposal = {
+      id: `prop-crit-${Date.now()}`,
+      proposed_by: currentUser.id,
+      proposed_by_name: currentUser.full_name,
+      created_at: new Date().toISOString(),
+      status: 'pending',
+      review_note: note,
+      criteria,
+    };
+    const list = [proposal, ...criteriaProposals];
+    setCriteriaProposals(list);
+    storageService.saveCriteriaProposals(list);
+
+    notificationPoller.notifyNewItem({
+      user_id: 'user-master',
+      title: 'Đề xuất thay đổi tiêu chuẩn đánh giá',
+      message: `${currentUser.full_name} (Admin) vừa gửi đề xuất điều chỉnh bảng tiêu chuẩn & thang điểm cần Master duyệt.`,
+      type: 'kpi_updated',
+      link_module: 'mendan',
+    });
+
+    triggerToast('Đã Gửi Đề Xuất Cho Master', 'Chỉnh sửa của Admin đã được chuyển đến Master để duyệt trước khi áp dụng.');
+    return { status: 'proposed' };
+  };
+
+  const reviewCriteriaProposal = (
+    proposalId: string,
+    status: 'approved' | 'rejected',
+    reviewNote?: string
+  ) => {
+    if (!isMaster) {
+      triggerToast('Từ Chối Quyền', 'Chỉ tài khoản Master mới có quyền phê duyệt đề xuất tiêu chuẩn.');
+      return;
+    }
+    const list = [...criteriaProposals];
+    const idx = list.findIndex((p) => p.id === proposalId);
+    if (idx < 0) return;
+
+    list[idx] = {
+      ...list[idx],
+      status,
+      reviewed_by: currentUser.id,
+      reviewed_at: new Date().toISOString(),
+      review_note: reviewNote,
+    };
+    setCriteriaProposals(list);
+    storageService.saveCriteriaProposals(list);
+
+    if (status === 'approved') {
+      setEvaluationCriteria(list[idx].criteria);
+      storageService.saveEvaluationCriteria(list[idx].criteria);
+      triggerToast('Phê Duyệt Thành Công', 'Master đã duyệt áp dụng bảng tiêu chuẩn đánh giá mới.');
+    } else {
+      triggerToast('Đã Từ Chối Đề Xuất', 'Master đã từ chối áp dụng đề xuất chỉnh sửa tiêu chuẩn.');
+    }
+
+    notificationPoller.notifyNewItem({
+      user_id: list[idx].proposed_by,
+      title: status === 'approved' ? 'Đề xuất tiêu chuẩn đã được duyệt' : 'Đề xuất tiêu chuẩn bị từ chối',
+      message: `Master đã ${status === 'approved' ? 'phê duyệt' : 'từ chối'} đề xuất thay đổi bảng tiêu chuẩn đánh giá của bạn.`,
+      type: 'kpi_updated',
+      link_module: 'mendan',
+    });
+  };
+
+  const updateMendanVisibility = (
+    mendanId: string,
+    visibilityType: MendanVisibilityType,
+    allowedViewerIds: string[]
+  ) => {
+    const list = [...mendanRecords];
+    const idx = list.findIndex((m) => m.id === mendanId);
+    if (idx >= 0) {
+      list[idx] = {
+        ...list[idx],
+        visibility_type: visibilityType,
+        allowed_viewer_ids: allowedViewerIds,
+        visibility_scope: visibilityType === 'public' ? 'member_and_leader' : 'manager_only',
+        updated_at: new Date().toISOString(),
+      };
+      setMendanRecords(list);
+      storageService.saveMendanRecords(list);
+      triggerToast(
+        'Cập Nhật Quyền Xem',
+        visibilityType === 'public'
+          ? `Đã cài đặt Công Khai (Nhân sự được đánh giá + Người đánh giá + ${allowedViewerIds.length} thành viên khác).`
+          : 'Đã cài đặt Không Công Khai (Chỉ người đánh giá).'
+      );
+    }
+  };
+
+  const updateMendanStatus = (mendanId: string, status: MendanStatus) => {
+    const list = [...mendanRecords];
+    const idx = list.findIndex((m) => m.id === mendanId);
+    if (idx >= 0) {
+      list[idx] = {
+        ...list[idx],
+        status,
+        updated_at: new Date().toISOString(),
+      };
+      setMendanRecords(list);
+      storageService.saveMendanRecords(list);
+      triggerToast(
+        'Đổi Trạng Thái',
+        `Đã chuyển trạng thái Mendan sang: ${status === 'completed' ? 'Hoàn thành mendan' : status === 'pre_mendan' ? 'Đã đánh giá' : 'Chưa đánh giá'}`
+      );
+    }
+  };
+
   const resetAllSystemData = () => {
     storageService.resetAllData();
     window.location.reload();
@@ -602,11 +775,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setSelectedTeamId,
 
         isAdmin,
+        isMaster,
         isLeaderOrAdmin,
+        canCreateMendan,
         canViewTeam,
         visibleTeams,
         visibleUsers,
         visibleKpiRecords,
+
+        evaluationCriteria,
+        memberEvaluations,
+        criteriaProposals,
+        saveMemberEvaluation,
+        updateEvaluationCriteria,
+        reviewCriteriaProposal,
+        updateMendanVisibility,
+        updateMendanStatus,
 
         bulkApplyImportedKpis,
         exportCurrentKpis,

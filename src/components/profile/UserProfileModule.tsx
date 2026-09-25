@@ -34,9 +34,36 @@ export const UserProfileModule: React.FC = () => {
 
   const myTeam = teams.find((t) => t.id === currentUser.team_id);
   const myKpis = kpiRecords.filter((r) => r.user_id === currentUser.id);
-  const myMendans = mendanRecords.filter(
-    (m) => m.user_id === currentUser.id && m.status === 'completed'
-  );
+  const myMendans = mendanRecords.filter((m) => {
+    if (m.user_id !== currentUser.id || m.status !== 'completed') return false;
+    // Privacy check:
+    // If visibility_type is 'private': only evaluator or admin/master can view
+    if (m.visibility_type === 'private') {
+      return (
+        currentUser.role === 'admin' ||
+        currentUser.role === 'master' ||
+        m.evaluator_id === currentUser.id
+      );
+    }
+    // If visibility_type is 'public':
+    // currentUser can view if they are the evaluated employee, or the evaluator, or in allowed_viewer_ids, or admin/master
+    if (m.visibility_type === 'public') {
+      return (
+        m.user_id === currentUser.id ||
+        m.evaluator_id === currentUser.id ||
+        (m.allowed_viewer_ids && m.allowed_viewer_ids.includes(currentUser.id)) ||
+        currentUser.role === 'admin' ||
+        currentUser.role === 'master'
+      );
+    }
+    // Legacy fallback
+    if (currentUser.role !== 'admin' && currentUser.role !== 'master') {
+      if (m.visibility_scope === 'manager_only' || m.visibility_scope === 'leader_only') {
+        return false;
+      }
+    }
+    return true;
+  });
   const myAwards = awardProposals.filter(
     (p) => p.user_id === currentUser.id && p.status === 'approved' && p.is_published
   );
@@ -186,12 +213,12 @@ export const UserProfileModule: React.FC = () => {
         <div className="bg-white border border-[#E7E7E4] rounded-lg p-5">
           <h2 className="text-xs font-bold text-[#1C1C1A] uppercase tracking-wider mb-4 flex items-center space-x-2">
             <Calendar size={15} />
-            <span>Biên Bản Phỏng Vấn Mendan (Post-memo)</span>
+            <span>Biên Bản Đánh Giá & Mendan (Post-memo)</span>
           </h2>
 
           {myMendans.length === 0 ? (
             <div className="py-8 text-center text-xs text-[#8A8A85]">
-              Chưa có biên bản phỏng vấn hoàn thành nào được chia sẻ.
+              Chưa có biên bản đánh giá & Mendan hoàn thành nào được chia sẻ.
             </div>
           ) : (
             <div className="space-y-3">
@@ -202,7 +229,7 @@ export const UserProfileModule: React.FC = () => {
                 >
                   <div className="flex items-center justify-between">
                     <span className="font-bold text-[#1C1C1A]">
-                      {m.quarter_id ? `Phỏng vấn ${m.quarter_id}` : 'Phỏng vấn Ad-hoc'}
+                      {m.quarter_id ? `Đánh giá & Mendan ${m.quarter_id}` : 'Đánh giá & Mendan Ad-hoc'}
                     </span>
                     <span className="text-[11px] text-[#8A8A85]">
                       Ngày: {m.actual_date || m.scheduled_date}

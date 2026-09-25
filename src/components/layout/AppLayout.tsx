@@ -16,6 +16,7 @@ import {
   AlertCircle,
   X,
   ExternalLink,
+  ClipboardCheck,
 } from 'lucide-react';
 import { useApp, NavTab } from '../../context/AppContext';
 
@@ -48,7 +49,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
       items: [
         { id: 'home' as NavTab, label: 'Trang Chủ', icon: LayoutDashboard },
         { id: 'kpi' as NavTab, label: 'Thành Tích KPI', icon: TrendingUp },
-        { id: 'mendan' as NavTab, label: 'Phỏng Vấn Mendan (面談)', icon: Calendar },
+        { id: 'mendan' as NavTab, label: 'Đánh Giá & Mendan (面談)', icon: ClipboardCheck },
         { id: 'awards' as NavTab, label: 'Khen Thưởng & Bảng Vàng', icon: Award },
       ],
     },
