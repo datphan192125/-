@@ -7,10 +7,8 @@ import React from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { AppLayout } from './components/layout/AppLayout';
 import { HomeDashboard } from './components/dashboard/HomeDashboard';
-import { KpiOverview } from './components/kpi/KpiOverview';
-import { MendanModule } from './components/mendan/MendanModule';
+import { PerformanceModule } from './components/performance/PerformanceModule';
 import { AwardsModule } from './components/awards/AwardsModule';
-import { EvaluationModule } from './components/evaluation/EvaluationModule';
 import { UserProfileModule } from './components/profile/UserProfileModule';
 import { AdminTeamModule } from './components/admin/AdminTeamModule';
 import { AdminConfigModule } from './components/admin/AdminConfigModule';
@@ -22,10 +20,9 @@ const MainContent: React.FC = () => {
     case 'home':
       return <HomeDashboard />;
     case 'kpi':
-      return <KpiOverview />;
     case 'mendan':
     case 'evaluations':
-      return <MendanModule />;
+      return <PerformanceModule />;
     case 'awards':
       return <AwardsModule />;
     case 'profile':
@@ -35,7 +32,7 @@ const MainContent: React.FC = () => {
     case 'admin-config':
       return <AdminConfigModule />;
     default:
-      return <KpiOverview />;
+      return <PerformanceModule />;
   }
 };
 

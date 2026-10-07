@@ -77,7 +77,7 @@ export const UserProfileModule: React.FC = () => {
   const handleTogglePref = (key: keyof typeof notificationPrefs) => {
     setNotificationPrefs((prev) => {
       const updated = { ...prev, [key]: !prev[key] };
-      triggerToast('Đã Lưu Tuỳ Chọn', 'Tuỳ chọn thông báo của bạn đã được cập nhật.');
+      triggerToast('Đã Lưu Tuỳ Chọn', 'Tuỳ chọn thông báo tài khoản đã được cập nhật.');
       return updated;
     });
   };

@@ -37,6 +37,8 @@ import {
   Send,
   TrendingUp,
   ClipboardCheck,
+  Globe,
+  CheckSquare,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import {
@@ -79,6 +81,8 @@ export const MendanModule: React.FC = () => {
     isMaster,
     canViewTeam,
     triggerToast,
+    bulkUpdateEvaluationAndMendanVisibility,
+    toggleSingleMendanVisibility,
   } = useApp();
 
   // Subtab navigation: 'overview' (Tổng hợp) | 'rubric' (Bảng Tiêu Chuẩn) | 'proposals' (Duyệt Đề Xuất)
@@ -88,6 +92,10 @@ export const MendanModule: React.FC = () => {
   const [activeQuarterFilter, setActiveQuarterFilter] = useState<string>('Q1');
   const [activeStatusFilter, setActiveStatusFilter] = useState<string>('all');
   const [searchKeyword, setSearchKeyword] = useState<string>('');
+
+  // Bulk selection of users for Mendan & Evaluation visibility
+  const [isSelectMode, setIsSelectMode] = useState<boolean>(false);
+  const [selectedMendanUserIds, setSelectedMendanUserIds] = useState<string[]>([]);
 
   // 3-dots action menu state
   const [openActionMenuId, setOpenActionMenuId] = useState<string | null>(null);
@@ -177,35 +185,115 @@ export const MendanModule: React.FC = () => {
 
   const isLeader = currentUser.role === 'leader' || currentUser.role === 'subleader';
 
-  // Privacy protection: Regular members cannot view the internal Mendan assessment records
-  if (!isLeaderOrAdmin) {
-    return (
-      <div className="bg-white border border-[#E7E7E4] rounded-lg p-12 text-center max-w-xl mx-auto my-12 shadow-xs">
-        <div className="w-12 h-12 rounded-full bg-[#FBF7EE] text-[#B08A3E] flex items-center justify-center mx-auto mb-4 border border-[#B08A3E]/30">
-          <ShieldAlert size={24} />
-        </div>
-        <h2 className="text-lg font-bold text-[#1C1C1A] mb-2">
-          Khu Vực Quản Lý & Biên Bản Đánh Giá & Mendan (面談)
-        </h2>
-        <p className="text-xs text-[#8A8A85] leading-relaxed mb-6">
-          Quy trình chuẩn bị đánh giá và kết quả trao đổi Mendan được lưu trữ bảo mật giữa Quản lý (Manager) và Trưởng nhóm (Leader). Nhân sự không có quyền truy cập vào danh sách và nội dung đánh giá nội bộ này.
-        </p>
-        <div className="text-xs text-[#4A4A46] bg-[#F6F6F4] p-3.5 rounded border border-[#E7E7E4] text-left leading-normal">
-          <div className="font-semibold text-[#1C1C1A] mb-1 flex items-center space-x-1.5">
-            <AlertCircle size={14} className="text-[#7c9cd0]" />
-            <span>Lưu ý bảo mật theo quy chuẩn đánh giá:</span>
-          </div>
-          Khi buổi trao đổi Mendan định kỳ diễn ra, Manager hoặc Leader sẽ trực tiếp trao đổi và chia sẻ định hướng mục tiêu phát triển cùng bạn. Nếu có thắc mắc, vui lòng liên hệ trực tiếp cấp quản lý phụ trách.
-        </div>
-      </div>
-    );
-  }
-
   // Active quarter string for display and record matching
   const currentTargetQuarter =
     activeQuarterFilter === 'all' || activeQuarterFilter === 'adhoc' || activeQuarterFilter === 'quarterly'
       ? 'Q1'
       : activeQuarterFilter;
+
+  // Privacy protection: Regular members cannot view internal records unless marked public
+  if (!isLeaderOrAdmin) {
+    const myMendan = mendanRecords.find(
+      (m) => m.user_id === currentUser.id && (m.quarter_id === currentTargetQuarter || !m.quarter_id)
+    );
+    const myEval = memberEvaluations.find(
+      (e) => e.user_id === currentUser.id && e.quarter_id === (currentTargetQuarter || 'Q1')
+    );
+    const isPublic = myMendan?.visibility_type === 'public' || myEval?.is_public === true;
+
+    if (!isPublic) {
+      return (
+        <div className="bg-white border border-[#E7E7E4] rounded-lg p-12 text-center max-w-xl mx-auto my-12 shadow-xs">
+          <div className="w-12 h-12 rounded-full bg-[#FEF3C7] text-[#D97706] flex items-center justify-center mx-auto mb-4 border border-[#FCD34D]">
+            <Lock size={24} />
+          </div>
+          <h2 className="text-lg font-bold text-[#1C1C1A] mb-2">
+            Biên Bản Mendan & Đánh Giá Chưa Công Khai
+          </h2>
+          <p className="text-xs text-[#8A8A85] leading-relaxed mb-6">
+            Hồ sơ đánh giá và biên bản trao đổi Mendan kỳ này đang ở chế độ <strong>Nội bộ (Chỉ Quản lý & Admin)</strong>. Khi cấp quản lý hoàn tất và chuyển sang trạng thái <strong>Công Khai</strong>, nhân sự sẽ có thể xem toàn bộ nội dung tại đây.
+          </p>
+          <div className="text-xs text-[#4A4A46] bg-[#F6F6F4] p-3.5 rounded border border-[#E7E7E4] text-left leading-normal">
+            <div className="font-semibold text-[#1C1C1A] mb-1 flex items-center space-x-1.5">
+              <AlertCircle size={14} className="text-[#7c9cd0]" />
+              <span>Chế độ hiển thị:</span>
+            </div>
+            Chỉ Admin của team và Master mới có quyền điều chỉnh trạng thái Công Khai hoặc Không Công Khai cho biên bản này.
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center justify-between pb-4 border-b border-[#E7E7E4]">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-[#1C1C1A]">
+              Biên Bản Trao Đổi Mendan Cá Nhân
+            </h1>
+            <p className="text-xs text-[#8A8A85] mt-1">
+              Biên bản này đang ở chế độ <strong className="text-[#15803D]">Công Khai</strong> (Nhân sự, Quản lý team và Master cùng xem).
+            </p>
+          </div>
+          <span className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-full text-xs font-bold bg-[#DCFCE7] text-[#15803D] border border-[#86EFAC]">
+            <Globe size={13} />
+            <span>Công Khai</span>
+          </span>
+        </div>
+
+        <div className="bg-white border border-[#E7E7E4] rounded-xl p-6 shadow-xs space-y-5">
+          <div className="flex items-center space-x-4 pb-4 border-b border-[#F0F0EE]">
+            <img
+              src={currentUser.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
+              alt={currentUser.full_name}
+              className="w-14 h-14 rounded-full object-cover border-2 border-[#7c9cd0]/30"
+            />
+            <div>
+              <h2 className="text-lg font-bold text-[#1C1C1A]">{currentUser.full_name}</h2>
+              <p className="text-xs text-[#64748B]">
+                Mã NV: <span className="font-mono">{currentUser.employee_code}</span> • Cấp bậc: {currentUser.rank || '—'} • Kỳ: {currentTargetQuarter}/2026
+              </p>
+            </div>
+          </div>
+
+          {/* Evaluation score summary if available */}
+          {myEval && (
+            <div className="p-4 bg-[#F8FAFC] rounded-lg border border-[#E2E8F0] flex items-center justify-between">
+              <div>
+                <span className="text-xs text-[#64748B] block">Tổng điểm đánh giá năng lực:</span>
+                <span className="text-2xl font-extrabold text-[#24487c]">{myEval.total_score} / 100đ</span>
+              </div>
+              <span className="px-3 py-1 bg-[#EFF6FF] text-[#1D4ED8] font-bold text-xs rounded border border-[#BFDBFE]">
+                Hạng: {myEval.rank_grade || 'B'}
+              </span>
+            </div>
+          )}
+
+          {/* Mendan meeting content */}
+          {myMendan ? (
+            <div className="space-y-4 text-xs">
+              <div className="p-3.5 bg-[#F0FDF4] rounded-lg border border-[#BBF7D0]">
+                <strong className="text-[#15803D] block mb-1">✓ Điểm tốt được ghi nhận:</strong>
+                <p className="text-[#166534] whitespace-pre-line">{myMendan.good_points || myMendan.leader_good_points || 'Đã hoàn thành tốt các chỉ tiêu quý.'}</p>
+              </div>
+
+              <div className="p-3.5 bg-[#FFFBEB] rounded-lg border border-[#FDE68A]">
+                <strong className="text-[#B45309] block mb-1">✎ Điểm cần cải thiện & khắc phục:</strong>
+                <p className="text-[#92400E] whitespace-pre-line">{myMendan.improvements || myMendan.leader_improvements || 'Tiếp tục phát huy và nâng cao tốc độ xử lý tác vụ.'}</p>
+              </div>
+
+              <div className="p-3.5 bg-[#EFF6FF] rounded-lg border border-[#BFDBFE]">
+                <strong className="text-[#1D4ED8] block mb-1">🎯 Mục tiêu quý tới:</strong>
+                <p className="text-[#1E40AF] whitespace-pre-line">{myMendan.next_goals || 'Duy trì kết quả công việc ổn định >100% KPI.'}</p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-[#8A8A85] italic">Biên bản chi tiết đang được cập nhật thêm.</p>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // Filter list of users visible to current user
   const evaluatableUsers = useMemo(() => {
@@ -549,15 +637,9 @@ export const MendanModule: React.FC = () => {
       .map((r) => r.evaluation!.total_score);
     const avgScore = scores.length > 0 ? (scores.reduce((a, b) => a + b, 0) / scores.length).toFixed(1) : '0';
 
-    const gradeCounts = { S: 0, A: 0, B: 0, C: 0, D: 0 };
-    records.forEach((r) => {
-      if (r.evaluation?.rank_grade) {
-        const g = r.evaluation.rank_grade as keyof typeof gradeCounts;
-        if (gradeCounts[g] !== undefined) gradeCounts[g]++;
-      }
-    });
+    const above80 = records.filter((r) => r.evaluation && r.evaluation.total_score >= 80).length;
 
-    return { total, evaluated, finalized, avgScore, gradeCounts };
+    return { total, evaluated, finalized, avgScore, above80 };
   }, [evaluatableUsers, memberEvaluations, currentTargetQuarter]);
 
   // Helper to render user awards (icon + styled tooltips)
@@ -925,23 +1007,12 @@ export const MendanModule: React.FC = () => {
             </div>
 
             <div className="bg-white border border-[#E7E7E4] rounded-lg p-3 shadow-2xs">
-              <div className="text-[11px] text-[#8A8A85] font-medium uppercase tracking-wider">Phân Bổ Xếp Hạng Quý</div>
-              <div className="flex items-center flex-wrap gap-1 mt-1.5">
-                <span className="px-1.5 py-0.2 text-[11px] font-bold rounded bg-[#FEF9C3] text-[#854D0E] border border-[#FDE047]">
-                  S: {evalStats.gradeCounts.S}
-                </span>
-                <span className="px-1.5 py-0.2 text-[11px] font-bold rounded bg-[#EFF6FF] text-[#1E40AF] border border-[#93C5FD]">
-                  A: {evalStats.gradeCounts.A}
-                </span>
-                <span className="px-1.5 py-0.2 text-[11px] font-bold rounded bg-[#F0FDF4] text-[#15803D] border border-[#86EFAC]">
-                  B: {evalStats.gradeCounts.B}
-                </span>
-                <span className="px-1.5 py-0.2 text-[11px] font-bold rounded bg-[#F8FAFC] text-[#475569] border border-[#CBD5E1]">
-                  C: {evalStats.gradeCounts.C}
-                </span>
-                <span className="px-1.5 py-0.2 text-[11px] font-bold rounded bg-[#FEF2F2] text-[#991B1B] border border-[#FCA5A5]">
-                  D: {evalStats.gradeCounts.D}
-                </span>
+              <div className="text-[11px] text-[#8A8A85] font-medium uppercase tracking-wider">Hồ Sơ Đạt Điểm Cao (≥ 80đ)</div>
+              <div className="text-xl font-bold text-[#15803D] mt-1 font-mono">
+                {evalStats.above80} <span className="text-xs text-[#8A8A85] font-normal">/ {evalStats.total} nhân sự</span>
+              </div>
+              <div className="text-[11px] text-[#8A8A85] mt-0.5">
+                Năng lực hoàn thành xuất sắc
               </div>
             </div>
 
@@ -1023,6 +1094,27 @@ export const MendanModule: React.FC = () => {
               </div>
             </div>
 
+            {/* Chức năng Chọn Nhiều - Hình 4 requirement */}
+            {(isMaster || isAdmin) && (
+              <button
+                type="button"
+                onClick={() => {
+                  const nextMode = !isSelectMode;
+                  setIsSelectMode(nextMode);
+                  if (!nextMode) setSelectedMendanUserIds([]);
+                }}
+                className={`inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-md text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap ${
+                  isSelectMode
+                    ? 'bg-[#24487c] text-white border-[#24487c] shadow-xs'
+                    : 'bg-white text-[#334155] border-[#CBD5E1] hover:bg-[#F8FAFC]'
+                }`}
+                title="Bật/Tắt chế độ tích chọn nhiều nhân sự cùng lúc"
+              >
+                <CheckSquare size={13} className="shrink-0" />
+                <span>{isSelectMode ? 'Đóng Chọn Nhiều' : 'Chọn Nhiều'}</span>
+              </button>
+            )}
+
             {/* Reset Filter Button */}
             {isAnyFilterActive && (
               <button
@@ -1071,6 +1163,52 @@ export const MendanModule: React.FC = () => {
         )}
       </div>
 
+      {/* Bulk Action Toolbar for Mendan Visibility */}
+      {selectedMendanUserIds.length > 0 && (
+        <div className="p-3 bg-[#1C1C1A] text-white rounded-xl shadow-lg flex flex-wrap items-center justify-between gap-3 animate-in fade-in duration-150">
+          <div className="flex items-center space-x-2 text-xs font-semibold">
+            <span className="w-2 h-2 rounded-full bg-[#7c9cd0] animate-pulse" />
+            <span>Đã chọn <strong className="text-[#7c9cd0]">{selectedMendanUserIds.length}</strong> nhân sự</span>
+            {!isMaster && isAdmin && (
+              <span className="text-[10px] text-[#A0A09C] bg-white/10 px-2 py-0.5 rounded">
+                (Chỉ áp dụng cho nhân sự thuộc bộ phận/team quản lý)
+              </span>
+            )}
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              type="button"
+              onClick={() => {
+                bulkUpdateEvaluationAndMendanVisibility(selectedMendanUserIds, true, currentTargetQuarter);
+                setSelectedMendanUserIds([]);
+              }}
+              className="flex items-center space-x-1.5 px-3 py-1.5 bg-[#15803D] hover:bg-[#166534] text-white text-xs font-bold rounded-lg transition-colors shadow-xs cursor-pointer"
+            >
+              <Globe size={13} />
+              <span>Đặt Công Khai (Cá nhân, Admin & Master)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                bulkUpdateEvaluationAndMendanVisibility(selectedMendanUserIds, false, currentTargetQuarter);
+                setSelectedMendanUserIds([]);
+              }}
+              className="flex items-center space-x-1.5 px-3 py-1.5 bg-[#D97706] hover:bg-[#B45309] text-white text-xs font-bold rounded-lg transition-colors shadow-xs cursor-pointer"
+            >
+              <Lock size={13} />
+              <span>Đặt Không Công Khai (Chỉ Admin & Master)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedMendanUserIds([])}
+              className="px-2.5 py-1.5 bg-white/10 hover:bg-white/20 text-[#E7E7E4] text-xs font-medium rounded-lg transition-colors cursor-pointer"
+            >
+              Bỏ chọn
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Mendan Table with Fixed Equal Column Widths */}
       <div className="bg-white border border-[#E7E7E4] rounded-lg overflow-hidden shadow-2xs">
         <div className="px-5 py-3 border-b border-[#F0F0EE] flex items-center justify-between text-xs min-h-[52px]">
@@ -1086,31 +1224,57 @@ export const MendanModule: React.FC = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse table-fixed">
+          <table className="w-full text-left text-xs border-collapse min-w-[1100px]">
             <colgroup>
+              {isSelectMode && <col className="w-[4%]" />}
               <col className="w-[19%]" />
+              <col className="w-[7%]" />
               <col className="w-[8%]" />
-              <col className="w-[9%]" />
               <col className="w-[18%]" />
               <col className="w-[18%]" />
-              <col className="w-[11%]" />
-              <col className="w-[17%]" />
+              <col className="w-[10%]" />
+              <col className="w-[16%]" />
             </colgroup>
             <thead>
               <tr className="text-[#24487c] text-[11px] tracking-wider uppercase bg-[#7c9cd0]/10 border-b border-[#c2d4ee] font-bold">
-                <th className="py-3 px-3">Nhân Sự</th>
-                <th className="py-3 px-2 text-center">Cấp Bậc</th>
-                <th className="py-3 px-3">Team</th>
-                <th className="py-3 px-3">Đánh Giá Năng Lực</th>
-                <th className="py-3 px-3">Biên Bản Mendan</th>
-                <th className="py-3 px-3">Khen Thưởng</th>
-                <th className="py-3 px-3 text-center">Thao Tác</th>
+                {isSelectMode && (
+                  <th className="py-3 px-2 text-center whitespace-nowrap">
+                    <input
+                      type="checkbox"
+                      checked={
+                        fullStaffRecords.filter(({ user }) => isMaster || (isAdmin && (user.team_id === currentUser.team_id || canViewTeam(user.team_id)))).length > 0 &&
+                        fullStaffRecords
+                          .filter(({ user }) => isMaster || (isAdmin && (user.team_id === currentUser.team_id || canViewTeam(user.team_id))))
+                          .every(({ user }) => selectedMendanUserIds.includes(user.id))
+                      }
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          const selectable = fullStaffRecords
+                            .filter(({ user }) => isMaster || (isAdmin && (user.team_id === currentUser.team_id || canViewTeam(user.team_id))))
+                            .map(({ user }) => user.id);
+                          setSelectedMendanUserIds(selectable);
+                        } else {
+                          setSelectedMendanUserIds([]);
+                        }
+                      }}
+                      className="w-4 h-4 rounded border-gray-300 text-[#7c9cd0] focus:ring-[#7c9cd0] cursor-pointer"
+                      title={isMaster ? 'Chọn tất cả nhân sự hiển thị' : 'Chọn tất cả nhân sự thuộc bộ phận/team quản lý'}
+                    />
+                  </th>
+                )}
+                <th className="py-3 px-3 whitespace-nowrap">Nhân Sự</th>
+                <th className="py-3 px-2 text-center whitespace-nowrap">Cấp Bậc</th>
+                <th className="py-3 px-3 whitespace-nowrap">Team</th>
+                <th className="py-3 px-3 whitespace-nowrap">Đánh Giá Năng Lực (Thang 100)</th>
+                <th className="py-3 px-3 whitespace-nowrap">Biên Bản Mendan & Hiển Thị</th>
+                <th className="py-3 px-3 whitespace-nowrap">Khen Thưởng</th>
+                <th className="py-3 px-3 text-center whitespace-nowrap">Thao Tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#F0F0EE]">
               {fullStaffRecords.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-xs text-[#8A8A85]">
+                  <td colSpan={isSelectMode ? 8 : 7} className="py-12 text-center text-xs text-[#8A8A85]">
                     Không tìm thấy nhân sự nào phù hợp với bộ lọc {activeTeamFilter !== 'all' && `của ${selectedTeamName}`}.
                   </td>
                 </tr>
@@ -1126,10 +1290,43 @@ export const MendanModule: React.FC = () => {
                     (e) => e.user_id === member.id && e.quarter_id === currentTargetQuarter
                   );
 
+                  const canEditVisibility = isMaster || (isAdmin && (member.team_id === currentUser.team_id || canViewTeam(member.team_id)));
+                  const isChecked = selectedMendanUserIds.includes(member.id);
+                  const isPublic = rec.visibility_type === 'public';
+
                   return (
-                    <tr key={`${member.id}-${rec.id}`} className="hover:bg-[#FAFAF9] transition-colors">
+                    <tr
+                      key={`${member.id}-${rec.id}`}
+                      className={`hover:bg-[#FAFAF9] transition-colors ${isChecked ? 'bg-[#7c9cd0]/5' : ''}`}
+                    >
+                      {/* Checkbox - Chỉ hiển thị khi chọn Chọn Nhiều (Hình 4) */}
+                      {isSelectMode && (
+                        <td className="py-3.5 px-2 text-center whitespace-nowrap">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            disabled={!canEditVisibility}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedMendanUserIds((prev) => [...prev, member.id]);
+                              } else {
+                                setSelectedMendanUserIds((prev) => prev.filter((id) => id !== member.id));
+                              }
+                            }}
+                            className={`w-4 h-4 rounded border-gray-300 text-[#7c9cd0] focus:ring-[#7c9cd0] ${
+                              canEditVisibility ? 'cursor-pointer' : 'cursor-not-allowed opacity-40'
+                            }`}
+                            title={
+                              canEditVisibility
+                                ? `Tích chọn để đổi chế độ hiển thị cho ${memberDisplayName}`
+                                : 'Chỉ Master hoặc Admin của team này mới có thể chọn đổi chế độ hiển thị'
+                            }
+                          />
+                        </td>
+                      )}
+
                       {/* 1. Nhân Sự */}
-                      <td className="py-3.5 px-3">
+                      <td className="py-3.5 px-3 whitespace-nowrap">
                         <div className="flex items-center space-x-3">
                           <img
                             src={
@@ -1149,7 +1346,7 @@ export const MendanModule: React.FC = () => {
                       </td>
 
                       {/* 2. Cấp Bậc */}
-                      <td className="py-3.5 px-2 text-center">
+                      <td className="py-3.5 px-2 text-center whitespace-nowrap">
                         {member?.rank && rankConfig ? (
                           <span
                             style={{
@@ -1157,83 +1354,116 @@ export const MendanModule: React.FC = () => {
                               color: rankConfig.text,
                               borderColor: rankConfig.border || 'transparent',
                             }}
-                            className="inline-block px-2 py-0.5 rounded font-mono text-[11px] font-bold border shadow-2xs"
+                            className="inline-block px-2.5 py-0.5 rounded font-mono text-[11px] font-bold border shadow-2xs whitespace-nowrap"
                           >
                             {member.rank}
                           </span>
                         ) : (
-                          <span className="font-mono text-[11px] text-[#8A8A85]">—</span>
+                          <span className="font-mono text-[11px] text-[#8A8A85] whitespace-nowrap">—</span>
                         )}
                       </td>
 
                       {/* 3. Team */}
-                      <td className="py-3.5 px-3">
-                        <span className="font-semibold text-xs text-[#24487c] bg-[#7c9cd0]/10 px-2 py-0.5 rounded border border-[#7c9cd0]/20 inline-block">
+                      <td className="py-3.5 px-3 whitespace-nowrap">
+                        <span className="font-semibold text-xs text-[#24487c] bg-[#7c9cd0]/10 px-2 py-0.5 rounded border border-[#7c9cd0]/20 inline-block whitespace-nowrap">
                           {team?.name || '—'}
                         </span>
                       </td>
 
-                      {/* 4. Đánh Giá Năng Lực (Điểm & Hạng) */}
-                      <td className="py-3.5 px-3">
+                      {/* 4. Đánh Giá Năng Lực */}
+                      <td className="py-3.5 px-3 whitespace-nowrap">
                         {evalRec ? (
-                          <div className="flex flex-col items-start space-y-0.5">
-                            <div className="flex items-center space-x-1.5">
-                              <span className="font-bold text-xs text-[#1D4ED8]">
-                                {evalRec.total_score}/100đ
+                          <div className="flex flex-col items-start space-y-1">
+                            <div className="flex items-center space-x-2 whitespace-nowrap">
+                              <span className="font-bold text-xs text-[#24487c] bg-[#EFF6FF] px-2 py-0.5 rounded border border-[#BFDBFE] whitespace-nowrap">
+                                {evalRec.total_score} / 100 điểm
                               </span>
-                              <span
-                                className={`px-1.5 py-0.2 rounded text-[10px] font-bold border ${getRankBadgeColor(
-                                  evalRec.rank_grade
-                                )}`}
-                              >
-                                Hạng {evalRec.rank_grade}
-                              </span>
-                            </div>
-                            <div className="flex items-center space-x-2">
-                              <span className="text-[10px] text-[#64748B]">
+                              <span className="text-[10px] text-[#64748B] whitespace-nowrap">
                                 {evalRec.status === 'finalized' ? '✓ Đã chốt' : '✎ Bản nháp'}
                               </span>
-                              <button
-                                type="button"
-                                onClick={() => handleOpenScoring(member, evalRec)}
-                                className="text-[10px] font-semibold text-[#24487c] hover:underline cursor-pointer"
-                              >
-                                Sửa điểm
-                              </button>
                             </div>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenScoring(member, evalRec)}
+                              className="text-[10px] font-semibold text-[#24487c] hover:underline cursor-pointer inline-flex items-center space-x-1 whitespace-nowrap"
+                            >
+                              <Edit3 size={10} />
+                              <span>Đánh giá</span>
+                            </button>
                           </div>
                         ) : (
                           <div className="flex flex-col items-start space-y-1">
-                            <span className="text-[11px] text-[#8A8A85] bg-[#F4F4F2] px-2 py-0.5 rounded border border-[#E7E7E4]">
-                              Chưa chấm
+                            <span className="text-[11px] text-[#8A8A85] bg-[#F4F4F2] px-2 py-0.5 rounded border border-[#E7E7E4] whitespace-nowrap">
+                              Chưa đánh giá
                             </span>
                             <button
                               type="button"
                               onClick={() => handleOpenScoring(member, null)}
-                              className="inline-flex items-center space-x-1 text-[10px] font-semibold text-[#24487c] hover:underline cursor-pointer"
+                              className="inline-flex items-center space-x-1 text-[10px] font-semibold text-[#24487c] hover:underline cursor-pointer whitespace-nowrap"
                             >
                               <Edit3 size={10} />
-                              <span>+ Chấm điểm</span>
+                              <span>+ Đánh giá</span>
                             </button>
                           </div>
                         )}
                       </td>
 
                       {/* 5. Biên Bản Mendan (Trạng Thái & Quyền Xem) */}
-                      <td className="py-3.5 px-3">
-                        {getStatusBadge(rec.status, rec.visibility_scope, rec.visibility_type, rec.allowed_viewer_ids)}
-                        <div className="text-[10px] text-[#8A8A85] mt-1 font-mono">
-                          {rec.scheduled_date || 'Chưa xếp lịch'}
+                      <td className="py-3.5 px-3 whitespace-nowrap">
+                        <div className="space-y-1">
+                          {getStatusBadge(rec.status, rec.visibility_scope, rec.visibility_type, rec.allowed_viewer_ids)}
+                          <div className="text-[10px] text-[#8A8A85] font-mono whitespace-nowrap">
+                            {rec.scheduled_date || 'Chưa xếp lịch'}
+                          </div>
+
+                          {/* Quick Interactive Visibility Toggle Button */}
+                          <div className="pt-0.5">
+                            {isPublic ? (
+                              <button
+                                type="button"
+                                disabled={!canEditVisibility}
+                                onClick={() => toggleSingleMendanVisibility(member.id, currentTargetQuarter)}
+                                className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold border transition-transform whitespace-nowrap ${
+                                  canEditVisibility ? 'cursor-pointer hover:scale-105' : 'cursor-not-allowed opacity-80'
+                                } bg-[#DCFCE7] text-[#15803D] border-[#86EFAC]`}
+                                title={
+                                  canEditVisibility
+                                    ? 'Công Khai (Cá nhân, Admin & Master thấy) - Nhấp để chuyển Không Công Khai'
+                                    : 'Công Khai (Không có quyền chỉnh sửa nhân sự khác team)'
+                                }
+                              >
+                                <Globe size={10} className="shrink-0" />
+                                <span className="whitespace-nowrap">Công Khai</span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                disabled={!canEditVisibility}
+                                onClick={() => toggleSingleMendanVisibility(member.id, currentTargetQuarter)}
+                                className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-[10px] font-bold border transition-transform whitespace-nowrap ${
+                                  canEditVisibility ? 'cursor-pointer hover:scale-105' : 'cursor-not-allowed opacity-80'
+                                } bg-[#FEF3C7] text-[#B45309] border-[#FCD34D]`}
+                                title={
+                                  canEditVisibility
+                                    ? 'Không Công Khai (Chỉ Admin & Master thấy) - Nhấp để chuyển sang Công Khai'
+                                    : 'Không Công Khai (Không có quyền chỉnh sửa nhân sự khác team)'
+                                }
+                              >
+                                <Lock size={10} className="shrink-0" />
+                                <span className="whitespace-nowrap">Không Công Khai</span>
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </td>
 
                       {/* 6. Khen Thưởng */}
-                      <td className="py-3.5 px-3">
+                      <td className="py-3.5 px-3 whitespace-nowrap">
                         {renderUserAwards(member.id, rec.quarter_id)}
                       </td>
 
                       {/* 7. Thao Tác (Actions) */}
-                      <td className="py-3.5 px-3 text-center">
+                      <td className="py-3.5 px-3 text-center whitespace-nowrap">
                         <div className="flex items-center justify-center space-x-1.5 relative">
                           <button
                             type="button"
@@ -1411,7 +1641,7 @@ export const MendanModule: React.FC = () => {
                 <thead>
                   <tr className="text-[#24487c] text-[11px] tracking-wider uppercase bg-[#7c9cd0]/10 border-b border-[#c2d4ee] font-bold">
                     <th className="py-3 px-3 w-12 text-center">STT</th>
-                    <th className="py-3 px-4 w-44">Hạng Mục (Tiêu Chí)</th>
+                    <th className="py-3 px-4 w-44">Tiêu Chí Đánh Giá</th>
                     <th className="py-3 px-3 w-28 text-center">Thang Điểm / Hệ Số</th>
                     <th className="py-3 px-3 w-40">Mức 1</th>
                     <th className="py-3 px-3 w-40">Mức 2</th>
@@ -1717,7 +1947,7 @@ export const MendanModule: React.FC = () => {
                             </div>
 
                             <div>
-                              <span className="font-semibold text-[#DC2626] block mb-0.5">• Điểm chưa tốt cần bạn khắc phục:</span>
+                              <span className="font-semibold text-[#DC2626] block mb-0.5">• Điểm cần cải thiện & khắc phục:</span>
                               <div className="text-[#334155] bg-white p-2.5 rounded border border-[#E7E7E4] leading-relaxed">
                                 {selectedHistoryRecord?.leader_improvements || '—'}
                               </div>
@@ -2043,10 +2273,10 @@ export const MendanModule: React.FC = () => {
                       />
                     </div>
 
-                    {/* Điểm chưa tốt cần bạn khắc phục */}
+                    {/* Điểm cần cải thiện & khắc phục */}
                     <div>
-                      <label className="font-semibold text-[#1C1C1A] block mb-1 text-[#DC2626]">
-                        • Điểm chưa tốt cần bạn khắc phục:
+                      <label className="font-semibold block mb-1 text-[#DC2626]">
+                        • Điểm cần cải thiện & khắc phục:
                       </label>
                       <textarea
                         rows={3}
@@ -2175,7 +2405,7 @@ export const MendanModule: React.FC = () => {
                           rows={2}
                           value={formData.good_points || ''}
                           onChange={(e) => setFormData({ ...formData, good_points: e.target.value })}
-                          placeholder="Manager ghi nhận ưu điểm và thế mạnh của bạn trong buổi trao đổi..."
+                          placeholder="Quản lý ghi nhận ưu điểm và thế mạnh của nhân sự trong buổi trao đổi..."
                           className="w-full bg-white border border-[#E7E7E4] rounded p-2.5 text-xs text-[#1C1C1A] focus:outline-hidden focus:border-[#7c9cd0]"
                         />
                       </div>
@@ -2679,6 +2909,369 @@ export const MendanModule: React.FC = () => {
               </button>
             </div>
           </form>
+        </div>
+      </div>
+    )}
+
+    {/* ========================================================
+        MODAL 4: CHẤM ĐIỂM ĐÁNH GIÁ NĂNG LỰC (7 TIÊU CHUẨN)
+       ======================================================== */}
+    {isScoringModalOpen && scoringUser && (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+        <div className="bg-white border border-[#E7E7E4] rounded-xl shadow-xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in duration-200">
+          {/* Modal Header */}
+          <div className="px-6 py-4 bg-[#7c9cd0] text-white flex items-center justify-between shrink-0">
+            <div className="flex items-center space-x-3">
+              <img
+                src={
+                  scoringUser.avatar_url ||
+                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'
+                }
+                alt={scoringUser.full_name}
+                className="w-10 h-10 rounded-full object-cover border-2 border-white/40"
+              />
+              <div>
+                <h2 className="text-base font-bold tracking-tight">
+                  Chấm Điểm Đánh Giá Năng Lực: {cleanName(scoringUser.full_name)}
+                </h2>
+                <p className="text-xs text-white/85">
+                  Mã NV: {scoringUser.employee_code} • Cấp bậc: {scoringUser.rank || '—'} • Kỳ đánh giá: Quý {currentTargetQuarter}/2026
+                </p>
+              </div>
+            </div>
+
+            {/* Total score badge without letter grade */}
+            <div className="flex items-center space-x-3">
+              <div className="text-right bg-white/20 backdrop-blur-xs px-3 py-1.5 rounded-lg border border-white/30">
+                <div className="text-[11px] text-white/80 font-medium">Tổng Điểm Năng Lực</div>
+                <div className="text-xl font-bold font-mono text-white">
+                  {computedScore.total} <span className="text-xs text-white/80 font-normal">/ 100 điểm</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsScoringModalOpen(false)}
+                className="text-white/80 hover:text-white p-1 rounded-md hover:bg-white/10 transition-colors ml-2 cursor-pointer"
+              >
+                <X size={20} />
+              </button>
+            </div>
+          </div>
+
+          {/* Modal Body - 7 Criteria */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className="p-3 bg-[#EFF6FF] border border-[#BFDBFE] rounded-lg text-xs text-[#1E40AF] flex items-center space-x-2">
+              <AlertCircle size={15} className="shrink-0" />
+              <span>
+                Leader/Người đánh giá bấm chọn mức độ (Mức 1 đến Mức 5) phù hợp nhất với năng lực thực tế của nhân sự trong quý. Điểm sẽ tự động nhân với hệ số của từng tiêu chuẩn (tối đa 100 điểm).
+              </span>
+            </div>
+
+            <div className="space-y-6">
+              {evaluationCriteria.map((crit, idx) => {
+                const currentLevel = scoringForm.scores[crit.id] || (crit.id === 'crit-late' ? 0 : 3);
+                const isLate = crit.id === 'crit-late';
+
+                return (
+                  <div key={crit.id} className="border border-[#E2E8F0] rounded-xl p-4 bg-[#FAFAFA]">
+                    {/* Criterion Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-[#E2E8F0] mb-3 gap-2">
+                      <div>
+                        <div className="flex items-center space-x-2">
+                          <span className="w-5 h-5 rounded-full bg-[#7c9cd0] text-white text-[11px] font-bold flex items-center justify-center">
+                            {idx + 1}
+                          </span>
+                          <span className="font-bold text-sm text-[#1C1C1A]">{crit.name}</span>
+                          <span className="text-xs text-[#24487c] font-medium">({crit.vietnamese_name})</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-3 text-xs">
+                        <span className="font-mono bg-[#E2E8F0] text-[#334155] px-2 py-0.5 rounded font-semibold">
+                          Hệ số: x{crit.weight}
+                        </span>
+                        <span className="font-bold font-mono text-[#24487c]">
+                          Điểm đạt: {isLate ? (currentLevel === 0 ? '0đ (Không trừ)' : `-${(currentLevel - 1) * 2}đ`) : `${currentLevel * crit.weight} / ${crit.weight * 5}đ`}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 5 Levels clickable buttons */}
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-2.5">
+                      {[1, 2, 3, 4, 5].map((levelNum) => {
+                        const levelKey = `level${levelNum}` as keyof typeof crit.levels;
+                        const desc = crit.levels[levelKey];
+                        const isSelected = currentLevel === levelNum;
+                        const points = isLate ? 0 : levelNum * crit.weight;
+
+                        return (
+                          <button
+                            key={levelNum}
+                            type="button"
+                            onClick={() => {
+                              setScoringForm((prev) => ({
+                                ...prev,
+                                scores: {
+                                  ...prev.scores,
+                                  [crit.id]: levelNum,
+                                },
+                              }));
+                            }}
+                            className={`p-3 rounded-lg border text-left flex flex-col justify-between transition-all cursor-pointer ${
+                              isSelected
+                                ? 'bg-[#EFF6FF] border-[#3B82F6] ring-2 ring-[#3B82F6]/30 shadow-xs'
+                                : 'bg-white border-[#E2E8F0] hover:border-[#94A3B8]'
+                            }`}
+                          >
+                            <div>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <span className={`text-xs font-bold ${isSelected ? 'text-[#1D4ED8]' : 'text-[#334155]'}`}>
+                                  Mức {levelNum}
+                                </span>
+                                <span className="text-[11px] font-mono font-semibold text-[#64748B]">
+                                  {points}đ
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-[#475569] leading-relaxed whitespace-pre-line line-clamp-6">
+                                {desc}
+                              </p>
+                            </div>
+
+                            <div className="mt-2 pt-1 border-t border-[#F1F5F9] flex items-center justify-end">
+                              {isSelected ? (
+                                <span className="text-[10px] text-[#1D4ED8] font-bold flex items-center space-x-0.5">
+                                  <Check size={12} />
+                                  <span>Đã chọn</span>
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-[#94A3B8]">Chọn mức</span>
+                              )}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Evaluator Notes */}
+            <div className="space-y-1.5 pt-2">
+              <label className="text-xs font-bold text-[#1C1C1A]">
+                Nhận xét & Đánh giá của Người đánh giá:
+              </label>
+              <textarea
+                value={scoringForm.note}
+                onChange={(e) => setScoringForm({ ...scoringForm, note: e.target.value })}
+                placeholder="Ghi nhận điểm tốt, điểm cần cải thiện và kế hoạch hành động..."
+                rows={3}
+                className="w-full text-xs p-3 border border-[#E7E7E4] rounded-lg focus:outline-hidden hover:border-[#8A8A85] transition-colors"
+              />
+            </div>
+          </div>
+
+          {/* Modal Footer */}
+          <div className="px-6 py-3.5 bg-[#F6F6F4] border-t border-[#E7E7E4] flex items-center justify-between shrink-0">
+            <div className="text-xs text-[#8A8A85]">
+              Người đánh giá: <strong>{cleanName(currentUser.full_name)}</strong> ({currentUser.role.toUpperCase()})
+            </div>
+            <div className="flex items-center space-x-2.5">
+              <button
+                type="button"
+                onClick={() => setIsScoringModalOpen(false)}
+                className="px-4 py-2 rounded-lg border border-[#E7E7E4] text-xs font-semibold text-[#4A4A46] hover:bg-white transition-colors cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSaveEvaluation('draft')}
+                className="px-4 py-2 rounded-lg bg-white border border-[#7c9cd0] text-xs font-semibold text-[#24487c] hover:bg-[#7c9cd0]/10 transition-colors cursor-pointer shadow-2xs"
+              >
+                Lưu Bản Nháp
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSaveEvaluation('finalized')}
+                className="flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-[#7c9cd0] hover:bg-[#6788be] text-xs font-bold text-white transition-colors cursor-pointer shadow-xs"
+              >
+                <Check size={14} />
+                <span>Chốt Kết Quả Đánh Giá</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* ========================================================
+        MODAL 5: CHỈNH SỬA BẢNG TIÊU CHUẨN & THANG ĐIỂM
+       ======================================================== */}
+    {isRubricModalOpen && (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center z-50 p-2 sm:p-4 overflow-y-auto">
+        <div className="bg-white border border-[#E7E7E4] rounded-xl shadow-xl w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in duration-200">
+          {/* Header */}
+          <div className="px-6 py-4 bg-[#24487c] text-white flex items-center justify-between shrink-0">
+            <div>
+              <h2 className="text-base font-bold">
+                {isMaster ? 'Quản Trị Bảng Tiêu Chuẩn & Thang Điểm (Master)' : 'Đề Xuất Chỉnh Sửa Tiêu Chuẩn & Thang Điểm (Admin)'}
+              </h2>
+              <p className="text-xs text-white/80 mt-0.5">
+                {isMaster
+                  ? 'Master có quyền chỉnh sửa trực tiếp và áp dụng ngay vào hệ thống.'
+                  : 'Admin có quyền đề xuất chỉnh sửa; đề xuất phải được Master duyệt trước khi áp dụng.'}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsRubricModalOpen(false)}
+              className="text-white/80 hover:text-white p-1 rounded-md hover:bg-white/10 cursor-pointer"
+            >
+              <X size={18} />
+            </button>
+          </div>
+
+          {/* Body */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            {!isMaster && (
+              <div className="p-3 bg-[#FEF9C3] border border-[#FDE047] rounded-lg text-xs text-[#854D0E] flex items-center space-x-2">
+                <AlertCircle size={15} className="shrink-0" />
+                <span>
+                  <strong>Quy định phê duyệt:</strong> Tài khoản đang đăng nhập với vai trò Admin. Các sửa đổi về tiêu chuẩn và hệ số thang điểm sẽ được tạo thành đề xuất gửi cho Master phê duyệt.
+                </span>
+              </div>
+            )}
+
+            {/* Note input for Admin */}
+            {!isMaster && (
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-[#1C1C1A]">Lý do / Ghi chú đề xuất gửi Master:</label>
+                <input
+                  type="text"
+                  value={adminProposalNote}
+                  onChange={(e) => setAdminProposalNote(e.target.value)}
+                  placeholder="Ví dụ: Điều chỉnh tăng hệ số tính chủ động và bổ sung tiêu chí chi tiết cho quý mới..."
+                  className="w-full text-xs p-2.5 border border-[#E7E7E4] rounded-lg focus:outline-hidden"
+                />
+              </div>
+            )}
+
+            {/* Criteria List editable */}
+            <div className="space-y-4">
+              {rubricDraft.map((crit, idx) => (
+                <div key={crit.id} className="p-4 border border-[#E2E8F0] rounded-xl bg-[#F8FAFC] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <span className="w-5 h-5 rounded-full bg-[#24487c] text-white text-[11px] font-bold flex items-center justify-center">
+                        {idx + 1}
+                      </span>
+                      <span className="font-bold text-xs text-[#1C1C1A]">{crit.name}</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <label className="text-xs font-bold text-[#24487c]">Hệ số thang điểm:</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="10"
+                        value={crit.weight}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10) || 0;
+                          setRubricDraft((prev) =>
+                            prev.map((c) => (c.id === crit.id ? { ...c, weight: val } : c))
+                          );
+                        }}
+                        className="w-16 text-center text-xs font-bold p-1 bg-white border border-[#CBD5E1] rounded"
+                      />
+                      <span className="text-xs text-[#64748B]">Max: {crit.weight * 5}đ</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label className="text-[11px] font-semibold text-[#64748B]">Tên tiêu chí (Tiếng Nhật):</label>
+                      <input
+                        type="text"
+                        value={crit.name}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setRubricDraft((prev) =>
+                            prev.map((c) => (c.id === crit.id ? { ...c, name: val } : c))
+                          );
+                        }}
+                        className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs mt-0.5"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-semibold text-[#64748B]">Tên tiêu chí (Tiếng Việt):</label>
+                      <input
+                        type="text"
+                        value={crit.vietnamese_name}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setRubricDraft((prev) =>
+                            prev.map((c) => (c.id === crit.id ? { ...c, vietnamese_name: val } : c))
+                          );
+                        }}
+                        className="w-full p-2 bg-white border border-[#CBD5E1] rounded text-xs mt-0.5"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Levels Descriptions */}
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-2 text-[11px]">
+                    {[1, 2, 3, 4, 5].map((lvl) => {
+                      const lvlKey = `level${lvl}` as keyof typeof crit.levels;
+                      return (
+                        <div key={lvl}>
+                          <span className="font-bold text-[#475569]">Mức {lvl}:</span>
+                          <textarea
+                            rows={4}
+                            value={crit.levels[lvlKey]}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setRubricDraft((prev) =>
+                                prev.map((c) =>
+                                  c.id === crit.id
+                                    ? { ...c, levels: { ...c.levels, [lvlKey]: val } }
+                                    : c
+                                )
+                              );
+                            }}
+                            className="w-full p-1.5 bg-white border border-[#CBD5E1] rounded mt-0.5 text-[10px] leading-tight"
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="px-6 py-3.5 bg-[#F6F6F4] border-t border-[#E7E7E4] flex items-center justify-between shrink-0">
+            <span className="text-xs text-[#8A8A85]">
+              {isMaster ? 'Đang thực hiện bởi Master' : 'Đang thực hiện bởi Admin (Cần Master duyệt)'}
+            </span>
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => setIsRubricModalOpen(false)}
+                className="px-4 py-2 rounded-lg border border-[#E7E7E4] text-xs font-semibold text-[#4A4A46] hover:bg-white cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveRubric}
+                className="flex items-center space-x-1.5 px-4 py-2 rounded-lg bg-[#24487c] hover:bg-[#1E3A5F] text-xs font-bold text-white shadow-xs cursor-pointer"
+              >
+                <Save size={14} />
+                <span>{isMaster ? 'Lưu & Áp Dụng Ngay' : 'Gửi Đề Xuất Chờ Master Duyệt'}</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     )}

@@ -313,8 +313,8 @@ export const INITIAL_KPIS: KpiRecord[] = [
     miss_count: 1,
     late_count: 1,
     projects: [
-      { id: 'p1', name: 'Đề án số hoá hồ sơ đợt 1', description: 'Chuẩn hoá 120 hồ sơ bảo hiểm Tokyo', role: 'Chủ trì' },
-      { id: 'p2', name: 'Rà soát chứng từ lưu trữ', description: 'Đảm bảo tuân thủ tiêu chuẩn ISO nội bộ', role: 'Tham gia' }
+      { id: 'p1', name: 'Đề án số hoá hồ sơ đợt 1', description: 'Chuẩn hoá 120 hồ sơ bảo hiểm Tokyo', role: 'Chủ trì', link: 'https://docs.google.com/document/d/sample-dean-so-hoa-1', status: 'Vượt tiến độ' },
+      { id: 'p2', name: 'Rà soát chứng từ lưu trữ', description: 'Đảm bảo tuân thủ tiêu chuẩn ISO nội bộ', role: 'Tham gia', link: 'https://docs.google.com/spreadsheets/d/sample-ra-soat-iso', status: 'Đang triển khai' }
     ],
     notes: 'Tiến độ hoàn thành vượt kỳ vọng, cần chú ý double-check để tránh 1 lỗi định dạng ngày.',
     evaluator_id: 'user-yamamoto',
@@ -335,9 +335,9 @@ export const INITIAL_KPIS: KpiRecord[] = [
     miss_count: 2,
     late_count: 0,
     projects: [
-      { id: 'p3', name: 'Tự động hoá phân loại phiếu nhập', description: 'Viết công thức đối chiếu tự động rút ngắn 30% thời gian', role: 'Khởi xướng' }
+      { id: 'p3', name: 'Tự động hoá phân loại phiếu nhập', description: 'Viết công thức đối chiếu tự động rút ngắn 30% thời gian', role: 'Khởi xướng', link: 'https://docs.google.com/spreadsheets/d/sample-tu-dong-hoa', status: 'Hoàn thành' }
     ],
-    notes: 'Hiệu suất nhóm rất cao, hỗ trợ tốt cho các bạn mới.',
+    notes: 'Hiệu suất nhóm rất cao, hỗ trợ tốt cho các nhân sự mới.',
     evaluator_id: 'user-sato',
     updated_at: '2026-03-22T10:00:00Z',
   },
@@ -356,7 +356,7 @@ export const INITIAL_KPIS: KpiRecord[] = [
     miss_count: 3,
     late_count: 2,
     projects: [
-      { id: 'p4', name: 'Quyết toán đối soát quý 1', description: 'Khớp 100% dữ liệu kế toán với chi nhánh Osaka', role: 'Thành viên' }
+      { id: 'p4', name: 'Quyết toán đối soát quý 1', description: 'Khớp 100% dữ liệu kế toán với chi nhánh Osaka', role: 'Thành viên', link: 'https://docs.google.com/document/d/sample-quyet-toan-q1', status: 'Đang triển khai' }
     ],
     notes: 'Tiến độ đạt 85%, nỗ lực hoàn thành nốt khối lượng tồn đọng.',
     evaluator_id: 'user-sato',
@@ -377,7 +377,7 @@ export const INITIAL_KPIS: KpiRecord[] = [
     miss_count: 1,
     late_count: 0,
     projects: [
-      { id: 'p5', name: 'Xử lý phản hồi đối tác VIP', description: 'Giải quyết 98% thắc mắc trong vòng 2 giờ', role: 'Phụ trách chính' }
+      { id: 'p5', name: 'Xử lý phản hồi đối tác VIP', description: 'Giải quyết 98% thắc mắc trong vòng 2 giờ', role: 'Phụ trách chính', link: 'https://docs.google.com/spreadsheets/d/sample-vip-partners', status: 'Hoàn thành' }
     ],
     notes: 'Giai đoạn 1 hoàn thành 50% chỉ tiêu theo kế hoạch điều phối mới.',
     evaluator_id: 'user-sato',
@@ -620,8 +620,8 @@ export const INITIAL_MENDANS: MendanRecord[] = [
     leader_evaluator_id: 'user-sato',
     leader_evaluated_at: '2026-03-22T10:00:00Z',
     leader_good_points: 'Khả năng tiếng Nhật N1 xuất sắc, phản hồi case VIP nhanh nhẹn và chính xác. Được khách hàng Nhật khen ngợi nhiều lần.',
-    leader_improvements: 'Cần chủ động chia sẻ bí quyết xử lý tài liệu khó cho các bạn mới trong 2課.',
-    leader_risks: 'Khối lượng hồ sơ VIP dồn dập vào tuần chốt tháng, có nguy cơ quá tải nếu không có bạn hỗ trợ dự phòng.',
+    leader_improvements: 'Cần chủ động chia sẻ bí quyết xử lý tài liệu khó cho các nhân sự mới trong 2課.',
+    leader_risks: 'Khối lượng hồ sơ VIP dồn dập vào tuần chốt tháng, có nguy cơ quá tải nếu không có nhân sự hỗ trợ dự phòng.',
     leader_other: 'Nguyện vọng muốn thử sức thêm với vai trò Mentor đào tạo và định hướng phát triển lên Subleader.',
     good_points: 'Khả năng tiếng Nhật N1 xuất sắc, giao tiếp tự tin và nhạy bén khi trao đổi với khách hàng Nhật Bản. Tốc độ giải quyết case VIP rất nhanh.',
     improvements: 'Nên chia sẻ thêm kinh nghiệm xử lý tài liệu cho các thành viên mới gia nhập team.',
@@ -767,7 +767,7 @@ export const INITIAL_MENDANS: MendanRecord[] = [
     leader_evaluator_id: 'user-sato',
     leader_evaluated_at: '2025-12-20T10:00:00Z',
     leader_good_points: 'Đạt 102.5% sản lượng Q4, xử lý trơn tru các hồ sơ phát sinh cuối năm.',
-    leader_improvements: 'Cần trau dồi thêm kỹ năng làm việc nhóm với các bạn mới.',
+    leader_improvements: 'Cần trau dồi thêm kỹ năng làm việc nhóm với các đồng nghiệp mới.',
     leader_risks: 'Không có rủi ro lớn.',
     leader_other: 'Dự kiến thi chứng chỉ tiếng Nhật cấp độ cao.',
     good_points: 'Hoàn thành 100% KPI quý 4, không có sai sót trong các hồ sơ VIP khách hàng Kansai.',
@@ -876,7 +876,7 @@ export const INITIAL_NOTIFICATIONS: AppNotification[] = [
     id: 'notif-3',
     user_id: 'user-pham-thi-d',
     title: 'Buổi trao đổi Mendan hoàn tất',
-    message: 'Trưởng nhóm Sato Kenji đã hoàn thành biên bản trao đổi Mendan Quý 1 cho bạn.',
+    message: 'Trưởng nhóm Sato Kenji đã hoàn thành biên bản trao đổi Mendan Quý 1 cho nhân sự.',
     type: 'mendan_scheduled',
     link_module: 'profile',
     is_read: true,
@@ -1012,8 +1012,9 @@ export const INITIAL_EVALUATION_CRITERIA: EvaluationCriterion[] = [
   },
 ];
 
-// Sample evaluation records matching exact image rubric score (83 points for user-admin)
+// Sample evaluation records matching exact image rubric score across quarters
 export const INITIAL_MEMBER_EVALUATIONS: MemberEvaluationRecord[] = [
+  // Quý 1 / 2026 (Quý hiện tại)
   {
     id: 'eval-admin-q1',
     user_id: 'user-admin',
@@ -1021,41 +1022,102 @@ export const INITIAL_MEMBER_EVALUATIONS: MemberEvaluationRecord[] = [
     team_id: 'team-gs',
     quarter_id: 'Q1',
     year: 2026,
-    scores: {
-      'crit-task': 5, // 5*5 = 25
-      'crit-flexibility': 4, // 4*4 = 16
-      'crit-horenso': 4, // 4*4 = 16
-      'crit-quality': 4, // 4*3 = 12
-      'crit-japanese': 4, // 4*2 = 8
-      'crit-kpi': 3, // 3*2 = 6
-      'crit-late': 0, // 0*0 = 0
-    },
-    total_score: 83, // Total: 25 + 16 + 16 + 12 + 8 + 6 + 0 = 83 (matches image exactly!)
+    scores: { 'crit-task': 5, 'crit-flexibility': 4, 'crit-horenso': 4, 'crit-quality': 4, 'crit-japanese': 4, 'crit-kpi': 3, 'crit-late': 0 },
+    total_score: 83,
     rank_grade: 'A',
     note: 'Thành tích vận hành xuất sắc, năng lực xử lý tác vụ độc lập tối đa.',
     status: 'finalized',
+    is_public: true,
     updated_at: '2026-03-24T10:00:00Z',
   },
   {
-    id: 'eval-dung-q1',
-    user_id: 'user-pham-thi-d',
-    evaluator_id: 'user-sato',
-    team_id: 'team-2s',
+    id: 'eval-master-q1',
+    user_id: 'user-master',
+    evaluator_id: 'user-master',
+    team_id: 'team-gs',
     quarter_id: 'Q1',
     year: 2026,
-    scores: {
-      'crit-task': 5, // 25
-      'crit-flexibility': 5, // 20
-      'crit-horenso': 5, // 20
-      'crit-quality': 5, // 15
-      'crit-japanese': 5, // 10
-      'crit-kpi': 4, // 8
-      'crit-late': 0, // 0
-    },
-    total_score: 98,
+    scores: { 'crit-task': 5, 'crit-flexibility': 5, 'crit-horenso': 5, 'crit-quality': 5, 'crit-japanese': 5, 'crit-kpi': 4, 'crit-late': 0 },
+    total_score: 96,
     rank_grade: 'S',
-    note: 'MVP quý 1, xử lý hồ sơ VIP trọn vẹn và đạt điểm giao tiếp tiếng Nhật tối đa.',
+    note: 'Lãnh đạo xuất sắc toàn bộ phận.',
     status: 'finalized',
+    is_public: true,
+    updated_at: '2026-03-24T10:00:00Z',
+  },
+  {
+    id: 'eval-sato-q1',
+    user_id: 'user-sato',
+    evaluator_id: 'user-admin',
+    team_id: 'team-2',
+    quarter_id: 'Q1',
+    year: 2026,
+    scores: { 'crit-task': 5, 'crit-flexibility': 4, 'crit-horenso': 4, 'crit-quality': 4, 'crit-japanese': 4, 'crit-kpi': 4, 'crit-late': 0 },
+    total_score: 85,
+    rank_grade: 'A',
+    note: 'Điều phối 2課 đạt chỉ tiêu ổn định.',
+    status: 'finalized',
+    is_public: true,
+    updated_at: '2026-03-24T10:30:00Z',
+  },
+  {
+    id: 'eval-yamamoto-q1',
+    user_id: 'user-yamamoto',
+    evaluator_id: 'user-admin',
+    team_id: 'team-1',
+    quarter_id: 'Q1',
+    year: 2026,
+    scores: { 'crit-task': 5, 'crit-flexibility': 4, 'crit-horenso': 4, 'crit-quality': 4, 'crit-japanese': 5, 'crit-kpi': 4, 'crit-late': 0 },
+    total_score: 86,
+    rank_grade: 'A',
+    note: 'Quản lý 1課 vững chắc.',
+    status: 'finalized',
+    is_public: false,
+    updated_at: '2026-03-24T10:45:00Z',
+  },
+  {
+    id: 'eval-tanaka-q1',
+    user_id: 'user-tanaka',
+    evaluator_id: 'user-admin',
+    team_id: 'team-3',
+    quarter_id: 'Q1',
+    year: 2026,
+    scores: { 'crit-task': 4, 'crit-flexibility': 4, 'crit-horenso': 5, 'crit-quality': 4, 'crit-japanese': 5, 'crit-kpi': 4, 'crit-late': 0 },
+    total_score: 84,
+    rank_grade: 'A',
+    note: 'Chất lượng kiểm tra chứng từ 3課 rất tốt.',
+    status: 'finalized',
+    is_public: true,
+    updated_at: '2026-03-24T10:50:00Z',
+  },
+  {
+    id: 'eval-suzuki-q1',
+    user_id: 'user-suzuki',
+    evaluator_id: 'user-admin',
+    team_id: 'team-gs',
+    quarter_id: 'Q1',
+    year: 2026,
+    scores: { 'crit-task': 4, 'crit-flexibility': 4, 'crit-horenso': 4, 'crit-quality': 4, 'crit-japanese': 5, 'crit-kpi': 4, 'crit-late': 0 },
+    total_score: 82,
+    rank_grade: 'B',
+    note: 'Hỗ trợ các công việc tổng vụ nhiệt tình.',
+    status: 'finalized',
+    is_public: false,
+    updated_at: '2026-03-24T10:55:00Z',
+  },
+  {
+    id: 'eval-an-q1',
+    user_id: 'user-nguyen-van-a',
+    evaluator_id: 'user-admin',
+    team_id: 'team-1',
+    quarter_id: 'Q1',
+    year: 2026,
+    scores: { 'crit-task': 5, 'crit-flexibility': 5, 'crit-horenso': 4, 'crit-quality': 5, 'crit-japanese': 4, 'crit-kpi': 4, 'crit-late': 0 },
+    total_score: 91,
+    rank_grade: 'S',
+    note: 'Subleader gương mẫu, hoàn thành 101.8% KPI.',
+    status: 'finalized',
+    is_public: true,
     updated_at: '2026-03-24T11:00:00Z',
   },
   {
@@ -1065,24 +1127,295 @@ export const INITIAL_MEMBER_EVALUATIONS: MemberEvaluationRecord[] = [
     team_id: 'team-2a',
     quarter_id: 'Q1',
     year: 2026,
-    scores: {
-      'crit-task': 5, // 25
-      'crit-flexibility': 5, // 20
-      'crit-horenso': 4, // 16
-      'crit-quality': 4, // 12
-      'crit-japanese': 4, // 8
-      'crit-kpi': 4, // 8
-      'crit-late': 0, // 0
-    },
+    scores: { 'crit-task': 5, 'crit-flexibility': 5, 'crit-horenso': 4, 'crit-quality': 4, 'crit-japanese': 4, 'crit-kpi': 4, 'crit-late': 0 },
     total_score: 89,
     rank_grade: 'A',
     note: 'Sáng kiến Kaizen tự động hoá phiếu nhập mang lại hiệu quả cao cho toàn nhóm.',
     status: 'finalized',
+    is_public: true,
     updated_at: '2026-03-24T12:00:00Z',
+  },
+  {
+    id: 'eval-cuong-q1',
+    user_id: 'user-le-van-c',
+    evaluator_id: 'user-sato',
+    team_id: 'team-2b',
+    quarter_id: 'Q1',
+    year: 2026,
+    scores: { 'crit-task': 4, 'crit-flexibility': 4, 'crit-horenso': 4, 'crit-quality': 4, 'crit-japanese': 4, 'crit-kpi': 3, 'crit-late': 0 },
+    total_score: 78,
+    rank_grade: 'B',
+    note: 'Cần khắc phục việc tồn đọng task cuối tháng.',
+    status: 'finalized',
+    is_public: false,
+    updated_at: '2026-03-24T12:30:00Z',
+  },
+  {
+    id: 'eval-dung-q1',
+    user_id: 'user-pham-thi-d',
+    evaluator_id: 'user-sato',
+    team_id: 'team-2s',
+    quarter_id: 'Q1',
+    year: 2026,
+    scores: { 'crit-task': 5, 'crit-flexibility': 5, 'crit-horenso': 5, 'crit-quality': 5, 'crit-japanese': 5, 'crit-kpi': 4, 'crit-late': 0 },
+    total_score: 98,
+    rank_grade: 'S',
+    note: 'MVP quý 1, xử lý hồ sơ VIP trọn vẹn và đạt điểm giao tiếp tiếng Nhật tối đa.',
+    status: 'finalized',
+    is_public: true,
+    updated_at: '2026-03-24T11:00:00Z',
+  },
+  {
+    id: 'eval-em-q1',
+    user_id: 'user-hoang-van-e',
+    evaluator_id: 'user-tanaka',
+    team_id: 'team-3',
+    quarter_id: 'Q1',
+    year: 2026,
+    scores: { 'crit-task': 5, 'crit-flexibility': 4, 'crit-horenso': 4, 'crit-quality': 5, 'crit-japanese': 4, 'crit-kpi': 4, 'crit-late': 0 },
+    total_score: 85,
+    rank_grade: 'A',
+    note: 'Chất lượng dịch thuật xuất sắc 0 Miss.',
+    status: 'finalized',
+    is_public: true,
+    updated_at: '2026-03-24T13:00:00Z',
+  },
+  {
+    id: 'eval-phuong-q1',
+    user_id: 'user-vu-thi-f',
+    evaluator_id: 'user-admin',
+    team_id: 'team-gs',
+    quarter_id: 'Q1',
+    year: 2026,
+    scores: { 'crit-task': 4, 'crit-flexibility': 3, 'crit-horenso': 3, 'crit-quality': 4, 'crit-japanese': 4, 'crit-kpi': 3, 'crit-late': 0 },
+    total_score: 73,
+    rank_grade: 'C',
+    note: 'Cần cải thiện việc tuân thủ giờ giấc.',
+    status: 'finalized',
+    is_public: false,
+    updated_at: '2026-03-24T13:30:00Z',
+  },
+  {
+    id: 'eval-giang-q1',
+    user_id: 'user-dang-van-g',
+    evaluator_id: 'user-yamamoto',
+    team_id: 'team-1',
+    quarter_id: 'Q1',
+    year: 2026,
+    scores: { 'crit-task': 4, 'crit-flexibility': 4, 'crit-horenso': 4, 'crit-quality': 4, 'crit-japanese': 4, 'crit-kpi': 4, 'crit-late': 0 },
+    total_score: 81,
+    rank_grade: 'B',
+    note: 'Tiến độ làm việc đều đặn, phối hợp tốt.',
+    status: 'finalized',
+    is_public: true,
+    updated_at: '2026-03-24T14:00:00Z',
+  },
+
+  // Quý 4 / 2025 (Quý trước để đối chiếu tăng/giảm điểm)
+  {
+    id: 'eval-admin-q4',
+    user_id: 'user-admin',
+    evaluator_id: 'user-master',
+    team_id: 'team-gs',
+    quarter_id: 'Q4',
+    year: 2025,
+    scores: { 'crit-task': 5, 'crit-flexibility': 4, 'crit-horenso': 4, 'crit-quality': 3, 'crit-japanese': 4, 'crit-kpi': 3, 'crit-late': 0 },
+    total_score: 80,
+    rank_grade: 'A',
+    status: 'finalized',
+    is_public: true,
+    updated_at: '2025-12-24T10:00:00Z',
+  },
+  {
+    id: 'eval-master-q4',
+    user_id: 'user-master',
+    evaluator_id: 'user-master',
+    team_id: 'team-gs',
+    quarter_id: 'Q4',
+    year: 2025,
+    scores: { 'crit-task': 5, 'crit-flexibility': 5, 'crit-horenso': 5, 'crit-quality': 5, 'crit-japanese': 5, 'crit-kpi': 4, 'crit-late': 0 },
+    total_score: 95,
+    rank_grade: 'S',
+    status: 'finalized',
+    is_public: true,
+    updated_at: '2025-12-24T10:00:00Z',
+  },
+  {
+    id: 'eval-sato-q4',
+    user_id: 'user-sato',
+    evaluator_id: 'user-admin',
+    team_id: 'team-2',
+    quarter_id: 'Q4',
+    year: 2025,
+    scores: { 'crit-task': 5, 'crit-flexibility': 5, 'crit-horenso': 4, 'crit-quality': 4, 'crit-japanese': 4, 'crit-kpi': 4, 'crit-late': 0 },
+    total_score: 88,
+    rank_grade: 'A',
+    status: 'finalized',
+    is_public: true,
+    updated_at: '2025-12-24T10:00:00Z',
+  },
+  {
+    id: 'eval-yamamoto-q4',
+    user_id: 'user-yamamoto',
+    evaluator_id: 'user-admin',
+    team_id: 'team-1',
+    quarter_id: 'Q4',
+    year: 2025,
+    scores: { 'crit-task': 4, 'crit-flexibility': 4, 'crit-horenso': 4, 'crit-quality': 4, 'crit-japanese': 5, 'crit-kpi': 4, 'crit-late': 0 },
+    total_score: 82,
+    rank_grade: 'B',
+    status: 'finalized',
+    is_public: true,
+    updated_at: '2025-12-24T10:00:00Z',
+  },
+  {
+    id: 'eval-tanaka-q4',
+    user_id: 'user-tanaka',
+    evaluator_id: 'user-admin',
+    team_id: 'team-3',
+    quarter_id: 'Q4',
+    year: 2025,
+    scores: { 'crit-task': 4, 'crit-flexibility': 4, 'crit-horenso': 5, 'crit-quality': 4, 'crit-japanese': 5, 'crit-kpi': 4, 'crit-late': 0 },
+    total_score: 84,
+    rank_grade: 'A',
+    status: 'finalized',
+    is_public: true,
+    updated_at: '2025-12-24T10:00:00Z',
+  },
+  {
+    id: 'eval-suzuki-q4',
+    user_id: 'user-suzuki',
+    evaluator_id: 'user-admin',
+    team_id: 'team-gs',
+    quarter_id: 'Q4',
+    year: 2025,
+    scores: { 'crit-task': 4, 'crit-flexibility': 3, 'crit-horenso': 4, 'crit-quality': 4, 'crit-japanese': 5, 'crit-kpi': 4, 'crit-late': 0 },
+    total_score: 79,
+    rank_grade: 'B',
+    status: 'finalized',
+    is_public: true,
+    updated_at: '2025-12-24T10:00:00Z',
+  },
+  {
+    id: 'eval-an-q4',
+    user_id: 'user-nguyen-van-a',
+    evaluator_id: 'user-admin',
+    team_id: 'team-1',
+    quarter_id: 'Q4',
+    year: 2025,
+    scores: { 'crit-task': 5, 'crit-flexibility': 4, 'crit-horenso': 4, 'crit-quality': 4, 'crit-japanese': 4, 'crit-kpi': 4, 'crit-late': 0 },
+    total_score: 85,
+    rank_grade: 'A',
+    status: 'finalized',
+    is_public: true,
+    updated_at: '2025-12-24T10:00:00Z',
+  },
+  {
+    id: 'eval-bich-q4',
+    user_id: 'user-tran-thi-b',
+    evaluator_id: 'user-sato',
+    team_id: 'team-2a',
+    quarter_id: 'Q4',
+    year: 2025,
+    scores: { 'crit-task': 4, 'crit-flexibility': 4, 'crit-horenso': 4, 'crit-quality': 4, 'crit-japanese': 4, 'crit-kpi': 4, 'crit-late': 0 },
+    total_score: 82,
+    rank_grade: 'B',
+    status: 'finalized',
+    is_public: true,
+    updated_at: '2025-12-24T10:00:00Z',
+  },
+  {
+    id: 'eval-cuong-q4',
+    user_id: 'user-le-van-c',
+    evaluator_id: 'user-sato',
+    team_id: 'team-2b',
+    quarter_id: 'Q4',
+    year: 2025,
+    scores: { 'crit-task': 4, 'crit-flexibility': 4, 'crit-horenso': 4, 'crit-quality': 3, 'crit-japanese': 4, 'crit-kpi': 3, 'crit-late': 0 },
+    total_score: 75,
+    rank_grade: 'B',
+    status: 'finalized',
+    is_public: true,
+    updated_at: '2025-12-24T10:00:00Z',
+  },
+  {
+    id: 'eval-dung-q4',
+    user_id: 'user-pham-thi-d',
+    evaluator_id: 'user-sato',
+    team_id: 'team-2s',
+    quarter_id: 'Q4',
+    year: 2025,
+    scores: { 'crit-task': 5, 'crit-flexibility': 5, 'crit-horenso': 4, 'crit-quality': 5, 'crit-japanese': 5, 'crit-kpi': 4, 'crit-late': 0 },
+    total_score: 92,
+    rank_grade: 'S',
+    status: 'finalized',
+    is_public: true,
+    updated_at: '2025-12-24T10:00:00Z',
+  },
+  {
+    id: 'eval-em-q4',
+    user_id: 'user-hoang-van-e',
+    evaluator_id: 'user-tanaka',
+    team_id: 'team-3',
+    quarter_id: 'Q4',
+    year: 2025,
+    scores: { 'crit-task': 4, 'crit-flexibility': 4, 'crit-horenso': 4, 'crit-quality': 4, 'crit-japanese': 4, 'crit-kpi': 4, 'crit-late': 0 },
+    total_score: 80,
+    rank_grade: 'A',
+    status: 'finalized',
+    is_public: true,
+    updated_at: '2025-12-24T10:00:00Z',
+  },
+  {
+    id: 'eval-phuong-q4',
+    user_id: 'user-vu-thi-f',
+    evaluator_id: 'user-admin',
+    team_id: 'team-gs',
+    quarter_id: 'Q4',
+    year: 2025,
+    scores: { 'crit-task': 4, 'crit-flexibility': 4, 'crit-horenso': 4, 'crit-quality': 4, 'crit-japanese': 4, 'crit-kpi': 3, 'crit-late': 0 },
+    total_score: 76,
+    rank_grade: 'B',
+    status: 'finalized',
+    is_public: true,
+    updated_at: '2025-12-24T10:00:00Z',
+  },
+  {
+    id: 'eval-giang-q4',
+    user_id: 'user-dang-van-g',
+    evaluator_id: 'user-yamamoto',
+    team_id: 'team-1',
+    quarter_id: 'Q4',
+    year: 2025,
+    scores: { 'crit-task': 4, 'crit-flexibility': 4, 'crit-horenso': 4, 'crit-quality': 4, 'crit-japanese': 4, 'crit-kpi': 3, 'crit-late': 0 },
+    total_score: 78,
+    rank_grade: 'B',
+    status: 'finalized',
+    is_public: true,
+    updated_at: '2025-12-24T10:00:00Z',
   },
 ];
 
 export const INITIAL_CRITERIA_PROPOSALS: CriteriaProposal[] = [];
+
+// Helper to compute evaluation total score consistently across the entire system
+export const calculateEvaluationTotalScore = (
+  scores: Record<string, number>,
+  criteria: EvaluationCriterion[] = INITIAL_EVALUATION_CRITERIA
+): number => {
+  let total = 0;
+  criteria.forEach((crit) => {
+    const level = scores[crit.id] ?? (crit.id === 'crit-late' ? 0 : 3);
+    if (crit.id === 'crit-late') {
+      if (level > 1) {
+        total -= (level - 1) * 2;
+      }
+    } else {
+      total += level * crit.weight;
+    }
+  });
+  return Math.max(0, Math.min(100, total));
+};
 
 // Helper to get from local storage or fallback to initial
 function getFromStorage<T>(key: string, fallback: T): T {
@@ -1149,12 +1482,12 @@ export const storageService = {
     const stored = getFromStorage<AwardProposal[]>(STORAGE_KEYS.AWARD_PROPOSALS, INITIAL_PROPOSALS);
     const existingIds = new Set(stored.map((p) => p.id));
     const missing = INITIAL_PROPOSALS.filter((p) => !existingIds.has(p.id));
-    if (missing.length > 0) {
-      const merged = [...stored, ...missing];
-      setToStorage(STORAGE_KEYS.AWARD_PROPOSALS, merged);
-      return merged;
-    }
-    return stored;
+    const merged = missing.length > 0 ? [...stored, ...missing] : stored;
+    return merged.map((p) => ({
+      ...p,
+      visibility_type: p.visibility_type || (p.status === 'approved' ? 'public' : 'private'),
+      allowed_viewer_ids: p.allowed_viewer_ids || [],
+    }));
   },
   saveAwardProposals: (proposals: AwardProposal[]) => setToStorage(STORAGE_KEYS.AWARD_PROPOSALS, proposals),
 
@@ -1175,8 +1508,40 @@ export const storageService = {
   saveEvaluationCriteria: (items: EvaluationCriterion[]) =>
     setToStorage(STORAGE_KEYS.EVALUATION_CRITERIA, items),
 
-  getMemberEvaluations: (): MemberEvaluationRecord[] =>
-    getFromStorage(STORAGE_KEYS.MEMBER_EVALUATIONS, INITIAL_MEMBER_EVALUATIONS),
+  getMemberEvaluations: (): MemberEvaluationRecord[] => {
+    const stored = getFromStorage<MemberEvaluationRecord[]>(STORAGE_KEYS.MEMBER_EVALUATIONS, INITIAL_MEMBER_EVALUATIONS);
+    const existingIds = new Set(stored.map((r) => r.id));
+    const missing = INITIAL_MEMBER_EVALUATIONS.filter((r) => !existingIds.has(r.id));
+    const merged = missing.length > 0 ? [...stored, ...missing] : stored;
+    return merged.map((r) => {
+      // Fix cached discrepancy if eval-cuong-q1 had crit-horenso: 3
+      const updatedScores = { ...(r.scores || {}) };
+      if (r.id === 'eval-cuong-q1' && updatedScores['crit-horenso'] === 3) {
+        updatedScores['crit-horenso'] = 4;
+      }
+      if (r.id === 'eval-cuong-q4' && updatedScores['crit-flexibility'] === 3) {
+        updatedScores['crit-flexibility'] = 4;
+        updatedScores['crit-horenso'] = 4;
+        updatedScores['crit-quality'] = 3;
+      }
+      if (r.id === 'eval-giang-q4' && updatedScores['crit-horenso'] !== 4) {
+        updatedScores['crit-horenso'] = 4;
+      }
+
+      // Calculate total score from criteria to guarantee 100% agreement between table and modal
+      let calculatedTotal = r.total_score;
+      if (Object.keys(updatedScores).length > 0) {
+        calculatedTotal = calculateEvaluationTotalScore(updatedScores, INITIAL_EVALUATION_CRITERIA);
+      }
+
+      return {
+        ...r,
+        scores: updatedScores,
+        total_score: calculatedTotal,
+        is_public: r.is_public !== undefined ? r.is_public : true,
+      };
+    });
+  },
   saveMemberEvaluations: (records: MemberEvaluationRecord[]) =>
     setToStorage(STORAGE_KEYS.MEMBER_EVALUATIONS, records),
 

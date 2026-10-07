@@ -88,10 +88,44 @@ interface AppContextType {
   downloadSampleTemplate: () => void;
   createOrUpdateMendan: (record: Partial<MendanRecord> & { id?: string }) => void;
   submitAwardProposal: (proposal: Omit<AwardProposal, 'id' | 'created_at' | 'status'>) => void;
-  reviewAwardProposal: (proposalId: string, status: ProposalStatus, feedback: string) => void;
+  reviewAwardProposal: (
+    proposalId: string,
+    status: ProposalStatus,
+    feedback: string,
+    visibilityType?: 'public' | 'private' | 'custom',
+    allowedViewerIds?: string[],
+    extra?: {
+      rejection_reason?: string;
+      revision_notes?: string;
+    }
+  ) => void;
+  updateAwardVisibility: (
+    proposalId: string,
+    visibilityType: 'public' | 'private' | 'custom',
+    allowedViewerIds?: string[]
+  ) => void;
+  bulkUpdateAwardVisibility: (
+    proposalIds: string[],
+    visibilityType: 'public' | 'private' | 'custom',
+    allowedViewerIds?: string[]
+  ) => void;
+  bulkUpdateEvaluationAndMendanVisibility: (
+    userIds: string[],
+    isPublic: boolean,
+    quarterId?: string
+  ) => { updatedCount: number; skippedCount: number };
+  toggleSingleEvaluationVisibility: (
+    userId: string,
+    quarterId?: string
+  ) => void;
+  toggleSingleMendanVisibility: (
+    userId: string,
+    quarterId?: string
+  ) => void;
   togglePublishAwards: (quarterId: string, isPublished: boolean) => void;
   updateQuarterConfig: (config: QuarterConfig) => void;
   updateKpiThresholds: (thresholds: KpiThresholds) => void;
+  updateKpiRecord: (record: KpiRecord) => void;
   updateUser: (user: User) => void;
   createUser: (user: Omit<User, 'id'>) => void;
   updateTeam: (team: Team) => void;
@@ -339,7 +373,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     notifiedUserIds.forEach((uid) => {
       notificationPoller.notifyNewItem({
         user_id: uid,
-        title: 'KPI của bạn vừa được cập nhật',
+        title: 'KPI cá nhân vừa được cập nhật',
         message: `Chỉ số KPI kỳ ${periodLabel} đã được quản lý cập nhật từ hệ thống.`,
         type: 'kpi_updated',
         link_module: 'kpi',
@@ -472,12 +506,35 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     triggerToast('Đã Gửi Đề Xuất', 'Đề xuất khen thưởng đang chờ Admin phê duyệt.');
   };
 
-  const reviewAwardProposal = (proposalId: string, status: ProposalStatus, feedback: string) => {
+  const reviewAwardProposal = (
+    proposalId: string,
+    status: ProposalStatus,
+    feedback: string,
+    visibilityType: 'public' | 'private' | 'custom' = 'public',
+    allowedViewerIds: string[] = [],
+    extra?: {
+      rejection_reason?: string;
+      revision_notes?: string;
+    }
+  ) => {
     const list = [...awardProposals];
     const idx = list.findIndex((p) => p.id === proposalId);
     if (idx >= 0) {
       list[idx].status = status;
       list[idx].feedback = feedback;
+      if (extra?.rejection_reason !== undefined) {
+        list[idx].rejection_reason = extra.rejection_reason;
+      }
+      if (extra?.revision_notes !== undefined) {
+        list[idx].revision_notes = extra.revision_notes;
+      }
+      if (status === 'approved') {
+        list[idx].visibility_type = visibilityType;
+        list[idx].allowed_viewer_ids = allowedViewerIds;
+        list[idx].is_published = visibilityType !== 'private';
+      } else {
+        list[idx].is_published = false;
+      }
       list[idx].reviewed_at = new Date().toISOString();
       list[idx].reviewed_by = currentUser.id;
       setAwardProposals(list);
@@ -487,22 +544,275 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const log = storageService.addAuditLog({
         user_id: currentUser.id,
         user_name: currentUser.full_name,
-        action: status === 'approved' ? 'approve_award' : 'reject_award',
-        details: `${status === 'approved' ? 'Duyệt' : 'Từ chối'} đề xuất khen thưởng ID: ${proposalId}`,
+        action:
+          status === 'approved'
+            ? 'approve_award'
+            : status === 'rejected'
+            ? 'reject_award'
+            : 'revision_award',
+        details: `${
+          status === 'approved'
+            ? 'Duyệt'
+            : status === 'rejected'
+            ? 'Từ chối'
+            : 'Yêu cầu xem xét lại'
+        } đề xuất khen thưởng ID: ${proposalId}`,
       });
       setAuditLogs((prev) => [log, ...prev]);
 
       // Notify the proposer
+      const statusTitle =
+        status === 'approved'
+          ? 'duyệt'
+          : status === 'rejected'
+          ? 'từ chối'
+          : 'yêu cầu xem xét lại';
       notificationPoller.notifyNewItem({
         user_id: list[idx].proposed_by,
-        title: `Đề xuất khen thưởng đã được ${status === 'approved' ? 'duyệt' : 'từ chối'}`,
-        message: feedback || (status === 'approved' ? 'Chúc mừng! Đề xuất đã được thông qua.' : 'Đề xuất chưa đạt tiêu chuẩn kỳ này.'),
+        title: `Đề xuất khen thưởng đã được ${statusTitle}`,
+        message:
+          extra?.revision_notes ||
+          extra?.rejection_reason ||
+          feedback ||
+          (status === 'approved'
+            ? 'Chúc mừng! Đề xuất đã được thông qua.'
+            : status === 'rejected'
+            ? 'Đề xuất chưa đạt tiêu chuẩn kỳ này.'
+            : 'Vui lòng bổ sung hoặc chỉnh sửa thông tin đề xuất.'),
         type: 'award_result',
         link_module: 'awards',
       });
 
-      triggerToast('Đã Phê Duyệt', `Đã chuyển trạng thái đề xuất thành: ${status.toUpperCase()}`);
+      const modeText =
+        status === 'approved'
+          ? ` (${visibilityType === 'public' ? 'Công Khai' : visibilityType === 'private' ? 'Không Công Khai' : 'Tùy chọn đối tượng'})`
+          : '';
+      const statusLabel =
+        status === 'approved'
+          ? 'ĐÃ DUYỆT'
+          : status === 'rejected'
+          ? 'ĐÃ TỪ CHỐI'
+          : status === 'revision_requested'
+          ? 'ĐÃ YÊU CẦU XEM XÉT LẠI'
+          : 'CHỜ DUYỆT';
+      triggerToast('Đã Cập Nhật Đề Xuất', `Trạng thái: ${statusLabel}${modeText}`);
     }
+  };
+
+  const updateAwardVisibility = (
+    proposalId: string,
+    visibilityType: 'public' | 'private' | 'custom',
+    allowedViewerIds: string[] = []
+  ) => {
+    const list = [...awardProposals];
+    const idx = list.findIndex((p) => p.id === proposalId);
+    if (idx >= 0) {
+      list[idx] = {
+        ...list[idx],
+        visibility_type: visibilityType,
+        allowed_viewer_ids: allowedViewerIds,
+        is_published: visibilityType !== 'private',
+      };
+      setAwardProposals(list);
+      storageService.saveAwardProposals(list);
+
+      const labelMap = {
+        public: 'Công Khai (Tất cả mọi người cùng thấy)',
+        private: 'Không Công Khai (Chỉ Master và Admin)',
+        custom: `Tùy chọn đối tượng (${allowedViewerIds.length} người được xem)`,
+      };
+      triggerToast('Cập Nhật Chế Độ Hiển Thị', `Đã chuyển sang: ${labelMap[visibilityType]}`);
+    }
+  };
+
+  const bulkUpdateAwardVisibility = (
+    proposalIds: string[],
+    visibilityType: 'public' | 'private' | 'custom',
+    allowedViewerIds: string[] = []
+  ) => {
+    const list = [...awardProposals];
+    let count = 0;
+    proposalIds.forEach((pid) => {
+      const idx = list.findIndex((p) => p.id === pid);
+      if (idx >= 0) {
+        list[idx] = {
+          ...list[idx],
+          visibility_type: visibilityType,
+          allowed_viewer_ids: allowedViewerIds,
+          is_published: visibilityType !== 'private',
+        };
+        count++;
+      }
+    });
+    setAwardProposals(list);
+    storageService.saveAwardProposals(list);
+
+    const labelMap = {
+      public: 'Công Khai (Tất cả mọi người)',
+      private: 'Không Công Khai (Chỉ Master & Admin)',
+      custom: `Tùy chọn đối tượng (${allowedViewerIds.length} người xem)`,
+    };
+    triggerToast('Cập Nhật Chế Độ Hiển Thị', `Đã cập nhật ${count} giải thưởng sang: ${labelMap[visibilityType]}`);
+  };
+
+  const bulkUpdateEvaluationAndMendanVisibility = (
+    userIds: string[],
+    isPublic: boolean,
+    quarterId = 'Q1'
+  ) => {
+    let updatedCount = 0;
+    let skippedCount = 0;
+
+    // Filter which users current user can edit:
+    // Master can edit anyone in any team
+    // Admin can edit members belonging to Admin's own team (or teams Admin manages)
+    const allowedUserIds = userIds.filter((uid) => {
+      if (isMaster) return true;
+      if (isAdmin) {
+        const u = users.find((x) => x.id === uid);
+        return u && (u.team_id === currentUser.team_id || canViewTeam(u.team_id));
+      }
+      return false;
+    });
+
+    skippedCount = userIds.length - allowedUserIds.length;
+
+    if (allowedUserIds.length === 0) {
+      triggerToast(
+        'Không có quyền thay đổi',
+        'Chỉ có quyền thay đổi chế độ hiển thị cho nhân sự thuộc team quản lý.'
+      );
+      return { updatedCount: 0, skippedCount };
+    }
+
+    // 1. Update member evaluations
+    const evals = [...memberEvaluations];
+    allowedUserIds.forEach((uid) => {
+      const idx = evals.findIndex((e) => e.user_id === uid && e.quarter_id === quarterId);
+      if (idx >= 0) {
+        evals[idx] = {
+          ...evals[idx],
+          is_public: isPublic,
+          updated_at: new Date().toISOString(),
+        };
+      } else {
+        const u = users.find((x) => x.id === uid);
+        evals.unshift({
+          id: `eval-${uid}-${quarterId}`,
+          user_id: uid,
+          evaluator_id: currentUser.id,
+          team_id: u?.team_id || currentUser.team_id,
+          quarter_id: quarterId,
+          year: 2026,
+          scores: {},
+          total_score: 0,
+          rank_grade: u?.rank ? (u.rank.startsWith('A') ? 'A' : u.rank.startsWith('B') ? 'B' : u.rank.startsWith('S') ? 'S' : 'C') : 'B',
+          status: 'draft',
+          is_public: isPublic,
+          updated_at: new Date().toISOString(),
+        });
+      }
+    });
+    setMemberEvaluations(evals);
+    storageService.saveMemberEvaluations(evals);
+
+    // 2. Update mendan records
+    const mendans = [...mendanRecords];
+    allowedUserIds.forEach((uid) => {
+      const idx = mendans.findIndex((m) => m.user_id === uid && (m.quarter_id === quarterId || !m.quarter_id));
+      if (idx >= 0) {
+        mendans[idx] = {
+          ...mendans[idx],
+          visibility_type: isPublic ? 'public' : 'private',
+          updated_at: new Date().toISOString(),
+        };
+      }
+    });
+    setMendanRecords(mendans);
+    storageService.saveMendanRecords(mendans);
+
+    updatedCount = allowedUserIds.length;
+    const modeLabel = isPublic ? 'Công Khai (Cá nhân, Admin & Master)' : 'Không Công Khai (Chỉ Admin & Master)';
+    triggerToast(
+      'Cập Nhật Hiển Thị Hàng Loạt',
+      `Đã chuyển ${updatedCount} nhân sự sang: ${modeLabel}${skippedCount > 0 ? ` (Bỏ qua ${skippedCount} nhân sự do khác team).` : '.'}`
+    );
+
+    return { updatedCount, skippedCount };
+  };
+
+  const toggleSingleEvaluationVisibility = (userId: string, quarterId = 'Q1') => {
+    // Check permission
+    const targetUser = users.find((u) => u.id === userId);
+    if (!isMaster) {
+      if (!isAdmin || !targetUser || (targetUser.team_id !== currentUser.team_id && !canViewTeam(targetUser.team_id))) {
+        triggerToast('Không có quyền', 'Chỉ Master hoặc Admin của team này mới có thể thay đổi chế độ hiển thị.');
+        return;
+      }
+    }
+
+    const evals = [...memberEvaluations];
+    const idx = evals.findIndex((e) => e.user_id === userId && e.quarter_id === quarterId);
+    let newIsPublic = true;
+    if (idx >= 0) {
+      newIsPublic = !evals[idx].is_public;
+      evals[idx] = {
+        ...evals[idx],
+        is_public: newIsPublic,
+        updated_at: new Date().toISOString(),
+      };
+    } else {
+      evals.unshift({
+        id: `eval-${userId}-${quarterId}`,
+        user_id: userId,
+        evaluator_id: currentUser.id,
+        team_id: targetUser?.team_id || currentUser.team_id,
+        quarter_id: quarterId,
+        year: 2026,
+        scores: {},
+        total_score: 0,
+        status: 'draft',
+        is_public: false, // toggled from true to false
+        updated_at: new Date().toISOString(),
+      });
+      newIsPublic = false;
+    }
+    setMemberEvaluations(evals);
+    storageService.saveMemberEvaluations(evals);
+
+    triggerToast(
+      'Chế Độ Hiển Thị Đánh Giá',
+      `Đã chuyển sang: ${newIsPublic ? 'Công Khai (Cá nhân, Admin & Master)' : 'Không Công Khai (Chỉ Admin & Master)'}`
+    );
+  };
+
+  const toggleSingleMendanVisibility = (userId: string, quarterId = 'Q1') => {
+    const targetUser = users.find((u) => u.id === userId);
+    if (!isMaster) {
+      if (!isAdmin || !targetUser || (targetUser.team_id !== currentUser.team_id && !canViewTeam(targetUser.team_id))) {
+        triggerToast('Không có quyền', 'Chỉ Master hoặc Admin của team này mới có thể thay đổi chế độ hiển thị.');
+        return;
+      }
+    }
+
+    const mendans = [...mendanRecords];
+    const idx = mendans.findIndex((m) => m.user_id === userId && (m.quarter_id === quarterId || !m.quarter_id));
+    let newType: MendanVisibilityType = 'public';
+    if (idx >= 0) {
+      newType = mendans[idx].visibility_type === 'public' ? 'private' : 'public';
+      mendans[idx] = {
+        ...mendans[idx],
+        visibility_type: newType,
+        updated_at: new Date().toISOString(),
+      };
+    }
+    setMendanRecords(mendans);
+    storageService.saveMendanRecords(mendans);
+
+    triggerToast(
+      'Chế Độ Hiển Thị Biên Bản Mendan',
+      `Đã chuyển sang: ${newType === 'public' ? 'Công Khai (Cá nhân, Admin & Master)' : 'Không Công Khai (Chỉ Admin & Master)'}`
+    );
   };
 
   const togglePublishAwards = (quarterId: string, isPublished: boolean) => {
@@ -551,6 +861,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setKpiThresholds(thresholds);
     storageService.saveKpiThresholds(thresholds);
     triggerToast('Cập Nhật Ngưỡng KPI', 'Ngưỡng đánh giá % đã được điều chỉnh.');
+  };
+
+  const updateKpiRecord = (record: KpiRecord) => {
+    const list = kpiRecords.map((k) => (k.id === record.id ? record : k));
+    setKpiRecords(list);
+    storageService.saveKpiRecords(list);
+    triggerToast('Cập Nhật Đề Án & KPI', `Đã cập nhật danh sách đề án kỳ ${record.period_label}.`);
   };
 
   const updateUser = (user: User) => {
@@ -617,7 +934,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     storageService.saveMemberEvaluations(list);
     triggerToast(
       'Đã Lưu Đánh Giá Điểm',
-      `Đã lưu kết quả đánh giá năng lực (${record.total_score} điểm - Hạng ${record.rank_grade || 'A'}).`
+      `Đã lưu kết quả đánh giá năng lực (${record.total_score}/100 điểm).`
     );
   };
 
@@ -692,7 +1009,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     notificationPoller.notifyNewItem({
       user_id: list[idx].proposed_by,
       title: status === 'approved' ? 'Đề xuất tiêu chuẩn đã được duyệt' : 'Đề xuất tiêu chuẩn bị từ chối',
-      message: `Master đã ${status === 'approved' ? 'phê duyệt' : 'từ chối'} đề xuất thay đổi bảng tiêu chuẩn đánh giá của bạn.`,
+      message: `Master đã ${status === 'approved' ? 'phê duyệt' : 'từ chối'} đề xuất thay đổi bảng tiêu chuẩn đánh giá của Admin.`,
       type: 'kpi_updated',
       link_module: 'mendan',
     });
@@ -798,9 +1115,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         createOrUpdateMendan,
         submitAwardProposal,
         reviewAwardProposal,
+        updateAwardVisibility,
+        bulkUpdateAwardVisibility,
+        bulkUpdateEvaluationAndMendanVisibility,
+        toggleSingleEvaluationVisibility,
+        toggleSingleMendanVisibility,
         togglePublishAwards,
         updateQuarterConfig,
         updateKpiThresholds,
+        updateKpiRecord,
         updateUser,
         createUser,
         updateTeam,

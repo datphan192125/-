@@ -253,13 +253,13 @@ export const AdminConfigModule: React.FC = () => {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-left text-xs min-w-[650px]">
               <thead className="bg-[#FAFAF9] text-[#8A8A85] uppercase text-[10px] tracking-wider border-b border-[#E7E7E4]">
                 <tr>
-                  <th className="py-2.5 px-5">Thời Gian</th>
-                  <th className="py-2.5 px-4">Người Thực Hiện</th>
-                  <th className="py-2.5 px-4">Hành Động</th>
-                  <th className="py-2.5 px-5">Chi Tiết Thao Tác</th>
+                  <th className="py-2.5 px-5 whitespace-nowrap">Thời Gian</th>
+                  <th className="py-2.5 px-4 whitespace-nowrap">Người Thực Hiện</th>
+                  <th className="py-2.5 px-4 whitespace-nowrap">Hành Động</th>
+                  <th className="py-2.5 px-5 whitespace-nowrap">Chi Tiết Thao Tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F0F0EE]">
@@ -297,7 +297,7 @@ export const AdminConfigModule: React.FC = () => {
           </div>
           <button
             onClick={() => {
-              if (window.confirm('Bạn có chắc chắn muốn nạp lại dữ liệu ban đầu không?')) {
+              if (window.confirm('Xác nhận đặt lại toàn bộ dữ liệu mẫu ban đầu của hệ thống?')) {
                 resetAllSystemData();
               }
             }}

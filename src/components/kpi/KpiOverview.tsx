@@ -685,29 +685,18 @@ export const KpiOverview: React.FC = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full table-fixed text-left text-xs">
-            <colgroup>
-              <col className="w-[20%]" />
-              <col className="w-[10%]" />
-              <col className="w-[10%]" />
-              <col className="w-[14%]" />
-              <col className="w-[10%]" />
-              <col className="w-[10%]" />
-              <col className="w-[9%]" />
-              <col className="w-[10%]" />
-              <col className="w-[7%]" />
-            </colgroup>
+          <table className="w-full text-left text-xs min-w-[950px]">
             <thead className="text-[#24487c] uppercase text-[11px] tracking-wider border-b border-[#c2d4ee] bg-[#7c9cd0]/10 font-bold">
               <tr>
-                <th className="py-3 px-5 font-bold">Nhân Sự</th>
-                <th className="py-3 px-4 font-bold">Team</th>
-                <th className="py-3 px-3 font-bold text-center">Cấp Bậc</th>
-                <th className="py-3 px-4 font-bold text-right">Tiến Độ</th>
-                <th className="py-3 px-4 font-bold text-right">Mục Tiêu</th>
-                <th className="py-3 px-4 font-bold text-right">Đã Đạt</th>
-                <th className="py-3 px-3 font-bold text-center">Lỗi / Trễ</th>
-                <th className="py-3 px-4 font-bold text-center">Đề Án</th>
-                <th className="py-3 px-4 font-bold text-right">Thao Tác</th>
+                <th className="py-3 px-5 font-bold whitespace-nowrap">Nhân Sự</th>
+                <th className="py-3 px-4 font-bold whitespace-nowrap">Team</th>
+                <th className="py-3 px-3 font-bold text-center whitespace-nowrap">Cấp Bậc</th>
+                <th className="py-3 px-4 font-bold text-right whitespace-nowrap">Tiến Độ</th>
+                <th className="py-3 px-4 font-bold text-right whitespace-nowrap">Mục Tiêu</th>
+                <th className="py-3 px-4 font-bold text-right whitespace-nowrap">Đã Đạt</th>
+                <th className="py-3 px-3 font-bold text-center whitespace-nowrap">Lỗi / Trễ</th>
+                <th className="py-3 px-4 font-bold text-center whitespace-nowrap">Đề Án</th>
+                <th className="py-3 px-4 font-bold text-right whitespace-nowrap">Thao Tác</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#F0F0EE]">
@@ -831,6 +820,9 @@ export const KpiOverview: React.FC = () => {
           record={selectedDetailRecord}
           user={users.find((u) => u.id === selectedDetailRecord.user_id) || null}
           team={teams.find((t) => t.id === selectedDetailRecord.team_id) || null}
+          allRecords={comparisonPeriodRecords}
+          allUsers={comparisonPeriodRecords.map((r: KpiRecord) => users.find((u) => u.id === r.user_id)!).filter(Boolean)}
+          onSelectUser={(u, r) => setSelectedDetailRecord(r)}
           onClose={() => setSelectedDetailRecord(null)}
         />
       )}

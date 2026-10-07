@@ -193,17 +193,17 @@ export const AdminTeamModule: React.FC = () => {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-left text-xs min-w-[850px]">
               <thead className="bg-[#FAFAF9] text-[#8A8A85] uppercase text-[10px] tracking-wider border-b border-[#E7E7E4]">
                 <tr>
-                  <th className="py-2.5 px-5">Mã & Họ Tên</th>
-                  <th className="py-2.5 px-4">Email Công Ty</th>
-                  <th className="py-2.5 px-4">Team Trực Thuộc</th>
-                  <th className="py-2.5 px-3 text-center">Cấp Bậc</th>
-                  <th className="py-2.5 px-3 text-center">Vai Trò (Role)</th>
-                  <th className="py-2.5 px-4">Phạm Vi (ViewScope)</th>
-                  <th className="py-2.5 px-3 text-center">Trạng Thái</th>
-                  {isAdmin && <th className="py-2.5 px-5 text-right">Thao Tác</th>}
+                  <th className="py-2.5 px-5 whitespace-nowrap">Mã & Họ Tên</th>
+                  <th className="py-2.5 px-4 whitespace-nowrap">Email Công Ty</th>
+                  <th className="py-2.5 px-4 whitespace-nowrap">Team Trực Thuộc</th>
+                  <th className="py-2.5 px-3 text-center whitespace-nowrap">Cấp Bậc</th>
+                  <th className="py-2.5 px-3 text-center whitespace-nowrap">Vai Trò (Role)</th>
+                  <th className="py-2.5 px-4 whitespace-nowrap">Phạm Vi (ViewScope)</th>
+                  <th className="py-2.5 px-3 text-center whitespace-nowrap">Trạng Thái</th>
+                  {isAdmin && <th className="py-2.5 px-5 text-right whitespace-nowrap">Thao Tác</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F0F0EE]">
@@ -314,16 +314,16 @@ export const AdminTeamModule: React.FC = () => {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-left text-xs min-w-[750px]">
               <thead className="bg-[#FAFAF9] text-[#8A8A85] uppercase text-[10px] tracking-wider border-b border-[#E7E7E4]">
                 <tr>
-                  <th className="py-2.5 px-5">Tên Team / Khối</th>
-                  <th className="py-2.5 px-4">Mã Code</th>
-                  <th className="py-2.5 px-4">Trực Thuộc</th>
-                  <th className="py-2.5 px-4">Trưởng Nhóm (Leader)</th>
-                  <th className="py-2.5 px-4">Phó Nhóm (Subleader)</th>
-                  <th className="py-2.5 px-5">Mô Tả Nhiệm Vụ</th>
-                  {isAdmin && <th className="py-2.5 px-5 text-right">Thao Tác</th>}
+                  <th className="py-2.5 px-5 whitespace-nowrap">Tên Team / Khối</th>
+                  <th className="py-2.5 px-4 whitespace-nowrap">Mã Code</th>
+                  <th className="py-2.5 px-4 whitespace-nowrap">Trực Thuộc</th>
+                  <th className="py-2.5 px-4 whitespace-nowrap">Trưởng Nhóm (Leader)</th>
+                  <th className="py-2.5 px-4 whitespace-nowrap">Phó Nhóm (Subleader)</th>
+                  <th className="py-2.5 px-5 whitespace-nowrap">Mô Tả Nhiệm Vụ</th>
+                  {isAdmin && <th className="py-2.5 px-5 text-right whitespace-nowrap">Thao Tác</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F0F0EE]">

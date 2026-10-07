@@ -78,6 +78,8 @@ export interface ProjectDetail {
   name: string;
   description: string;
   role: string;
+  link?: string; // Link tài liệu/kết quả đề án (Google Docs, Sheets, Drive, Jira...)
+  status?: string; // Trạng thái đề án: 'Đang triển khai' | 'Hoàn thành' | 'Vượt tiến độ'...
 }
 
 export interface KpiRecord {
@@ -121,7 +123,7 @@ export interface MendanRecord {
   leader_evaluator_id?: string;
   leader_evaluated_at?: string;
   leader_good_points?: string; // Điểm tốt:
-  leader_improvements?: string; // Điểm chưa tốt cần bạn khắc phục:
+  leader_improvements?: string; // Điểm cần cải thiện & khắc phục:
   leader_risks?: string; // Rủi ro:
   leader_other?: string; // Khác(Nếu có):
 
@@ -169,6 +171,7 @@ export interface MemberEvaluationRecord {
   rank_grade?: string; // 'S' | 'A' | 'B' | 'C' | 'D'
   note?: string;
   status: 'draft' | 'finalized';
+  is_public?: boolean; // true = Công Khai (cho cá nhân, Admin team đó và Master); false = Không Công Khai (chỉ Admin và Master)
   updated_at: string;
 }
 
@@ -192,7 +195,8 @@ export interface AwardCategory {
   order: number;
 }
 
-export type ProposalStatus = 'pending' | 'approved' | 'rejected';
+export type ProposalStatus = 'pending' | 'approved' | 'rejected' | 'revision_requested';
+export type AwardVisibilityType = 'public' | 'private' | 'custom';
 
 export interface AwardProposal {
   id: string;
@@ -204,7 +208,11 @@ export interface AwardProposal {
   reason: string;
   status: ProposalStatus;
   feedback?: string;
+  rejection_reason?: string;
+  revision_notes?: string;
   is_published: boolean;
+  visibility_type?: AwardVisibilityType; // 'public' (Công Khai) | 'private' (Không Công Khai) | 'custom' (Khác)
+  allowed_viewer_ids?: string[]; // Danh sách ID nhân sự được phép xem khi chọn 'custom'
   created_at: string;
   reviewed_at?: string;
   reviewed_by?: string;
@@ -251,7 +259,7 @@ export interface AuditLog {
   id: string;
   user_id: string;
   user_name: string;
-  action: 'import_kpi' | 'export_kpi' | 'approve_award' | 'reject_award' | 'complete_mendan' | 'config_update';
+  action: 'import_kpi' | 'export_kpi' | 'approve_award' | 'reject_award' | 'revision_award' | 'complete_mendan' | 'config_update';
   details: string;
   file_name?: string;
   records_count?: number;

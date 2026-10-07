@@ -79,8 +79,14 @@ export const KpiImportModal: React.FC<KpiImportModalProps> = ({ isOpen, onClose 
   const invalidCount = parsedRows.filter((r) => r.status === 'invalid').length;
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-      <div className="bg-white border border-[#E7E7E4] rounded-lg shadow-2xl max-w-4xl w-full flex flex-col max-h-[90vh] overflow-hidden">
+    <div
+      className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white border border-[#E7E7E4] rounded-lg shadow-2xl max-w-4xl w-full flex flex-col max-h-[90vh] overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#F0F0EE]">
           <div className="flex items-center space-x-3">
