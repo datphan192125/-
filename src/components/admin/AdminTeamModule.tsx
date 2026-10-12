@@ -10,6 +10,8 @@ import {
   Key,
   Search,
   ExternalLink,
+  Trash2,
+  X,
 } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { User, Team, Role, ViewScope, JapaneseLevel, EmployeeRank, ALL_RANKS, RANK_STYLE_CONFIG } from '../../types';
@@ -22,6 +24,7 @@ export const AdminTeamModule: React.FC = () => {
     createUser,
     updateTeam,
     createTeam,
+    deleteTeam,
     isAdmin,
   } = useApp();
 
@@ -347,16 +350,32 @@ export const AdminTeamModule: React.FC = () => {
                       </td>
                       <td className="py-3 px-5 text-xs text-[#8A8A85]">{t.description || '—'}</td>
                       {isAdmin && (
-                        <td className="py-3 px-5 text-right">
-                          <button
-                            onClick={() => {
-                              setSelectedTeamToEdit(t);
-                              setTeamFormData(t);
-                            }}
-                            className="text-xs text-[#4A4A46] hover:text-[#1C1C1A] underline font-medium"
-                          >
-                            Chỉnh sửa
-                          </button>
+                        <td className="py-3 px-5 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end space-x-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedTeamToEdit(t);
+                                setTeamFormData(t);
+                              }}
+                              className="p-1 rounded text-[#4A4A46] hover:text-[#1C1C1A] hover:bg-[#F0F0EE] transition-colors cursor-pointer"
+                              title="Chỉnh sửa cơ cấu team"
+                            >
+                              <Edit2 size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (window.confirm(`Bạn có chắc chắn muốn xóa team "${t.name}"?`)) {
+                                  deleteTeam(t.id);
+                                }
+                              }}
+                              className="p-1 rounded text-rose-600 hover:text-rose-800 hover:bg-rose-50 transition-colors cursor-pointer"
+                              title="Xóa team này"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </td>
                       )}
                     </tr>
@@ -370,14 +389,37 @@ export const AdminTeamModule: React.FC = () => {
 
       {/* Edit / New User Modal */}
       {(selectedUserToEdit || isNewUserModalOpen) && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white border border-[#E7E7E4] rounded-lg shadow-2xl max-w-lg w-full p-6">
-            <h3 className="font-bold text-base text-[#1C1C1A] mb-1">
-              {isNewUserModalOpen ? 'Thêm Nhân Viên Mới' : 'Phân Quyền & Thông Tin Nhân Sự'}
-            </h3>
-            <p className="text-xs text-[#8A8A85] mb-4">
-              Cấu hình vai trò RBAC và phạm vi hiển thị dữ liệu
-            </p>
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+          onClick={() => {
+            setSelectedUserToEdit(null);
+            setIsNewUserModalOpen(false);
+          }}
+        >
+          <div
+            className="bg-white border border-[#E7E7E4] rounded-lg shadow-2xl max-w-lg w-full p-6 animate-in fade-in duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-[#F0F0EE] mb-4">
+              <div>
+                <h3 className="font-bold text-base text-[#1C1C1A]">
+                  {isNewUserModalOpen ? 'Thêm Nhân Viên Mới' : 'Phân Quyền & Thông Tin Nhân Sự'}
+                </h3>
+                <p className="text-xs text-[#8A8A85]">
+                  Cấu hình vai trò RBAC và phạm vi hiển thị dữ liệu
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedUserToEdit(null);
+                  setIsNewUserModalOpen(false);
+                }}
+                className="text-[#8A8A85] hover:text-[#1C1C1A] p-1 rounded hover:bg-[#F6F6F4]"
+              >
+                <X size={18} />
+              </button>
+            </div>
 
             <form onSubmit={handleSaveUser} className="space-y-3.5 text-xs">
               <div className="grid grid-cols-2 gap-3">
@@ -517,14 +559,37 @@ export const AdminTeamModule: React.FC = () => {
 
       {/* Edit / New Team Modal */}
       {(selectedTeamToEdit || isNewTeamModalOpen) && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white border border-[#E7E7E4] rounded-lg shadow-2xl max-w-lg w-full p-6">
-            <h3 className="font-bold text-base text-[#1C1C1A] mb-1">
-              {isNewTeamModalOpen ? 'Tạo Nhóm / Khối Mới' : 'Cập Nhật Cơ Cấu Nhóm'}
-            </h3>
-            <p className="text-xs text-[#8A8A85] mb-4">
-              Cấu hình tên và liên kết phân cấp cha - con
-            </p>
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+          onClick={() => {
+            setSelectedTeamToEdit(null);
+            setIsNewTeamModalOpen(false);
+          }}
+        >
+          <div
+            className="bg-white border border-[#E7E7E4] rounded-lg shadow-2xl max-w-lg w-full p-6 animate-in fade-in duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-[#F0F0EE] mb-4">
+              <div>
+                <h3 className="font-bold text-base text-[#1C1C1A]">
+                  {isNewTeamModalOpen ? 'Tạo Nhóm / Khối Mới' : 'Cập Nhật Cơ Cấu Nhóm'}
+                </h3>
+                <p className="text-xs text-[#8A8A85]">
+                  Cấu hình tên và liên kết phân cấp cha - con
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedTeamToEdit(null);
+                  setIsNewTeamModalOpen(false);
+                }}
+                className="text-[#8A8A85] hover:text-[#1C1C1A] p-1 rounded hover:bg-[#F6F6F4]"
+              >
+                <X size={18} />
+              </button>
+            </div>
 
             <form onSubmit={handleSaveTeam} className="space-y-3.5 text-xs">
               <div className="grid grid-cols-2 gap-3">
@@ -562,10 +627,13 @@ export const AdminTeamModule: React.FC = () => {
                   className="w-full bg-[#F6F6F4] border border-[#E7E7E4] rounded p-2 text-xs text-[#1C1C1A]"
                 >
                   <option value="">Không có (Khối chính cấp 1)</option>
-                  <option value="team-2">2課 (Thuộc khối 2課)</option>
-                  <option value="team-1">1課</option>
-                  <option value="team-3">3課</option>
-                  <option value="team-gs">GS</option>
+                  {teams
+                    .filter((parentCandidate) => parentCandidate.id !== selectedTeamToEdit?.id)
+                    .map((parentCandidate) => (
+                      <option key={parentCandidate.id} value={parentCandidate.id}>
+                        {parentCandidate.name} ({parentCandidate.code})
+                      </option>
+                    ))}
                 </select>
               </div>
 
@@ -581,23 +649,46 @@ export const AdminTeamModule: React.FC = () => {
                 />
               </div>
 
-              <div className="flex justify-end space-x-2.5 pt-3 border-t border-[#F0F0EE]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedTeamToEdit(null);
-                    setIsNewTeamModalOpen(false);
-                  }}
-                  className="px-4 py-1.5 rounded border border-[#E7E7E4] text-[#4A4A46]"
-                >
-                  Huỷ
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 rounded bg-[#7c9cd0] hover:bg-[#6788be] text-white font-semibold shadow-xs transition-colors"
-                >
-                  Lưu Khối
-                </button>
+              <div className="flex items-center justify-between pt-3 border-t border-[#F0F0EE]">
+                <div>
+                  {selectedTeamToEdit && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `Bạn có chắc chắn muốn xóa team "${selectedTeamToEdit.name}"?`
+                          )
+                        ) {
+                          deleteTeam(selectedTeamToEdit.id);
+                          setSelectedTeamToEdit(null);
+                        }
+                      }}
+                      className="px-3 py-1.5 rounded border border-rose-200 text-rose-600 hover:bg-rose-50 font-medium inline-flex items-center space-x-1"
+                    >
+                      <Trash2 size={13} />
+                      <span>Xóa team này</span>
+                    </button>
+                  )}
+                </div>
+                <div className="flex space-x-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSelectedTeamToEdit(null);
+                      setIsNewTeamModalOpen(false);
+                    }}
+                    className="px-4 py-1.5 rounded border border-[#E7E7E4] text-[#4A4A46]"
+                  >
+                    Huỷ
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-1.5 rounded bg-[#7c9cd0] hover:bg-[#6788be] text-white font-semibold shadow-xs transition-colors"
+                  >
+                    Lưu Khối
+                  </button>
+                </div>
               </div>
             </form>
           </div>

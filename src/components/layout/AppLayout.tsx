@@ -7,7 +7,6 @@ import {
   Users,
   Settings,
   User as UserIcon,
-  Bell,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -35,17 +34,12 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
     users,
     activeTab,
     setActiveTab,
-    unreadCount,
-    notifications,
-    markNotificationRead,
-    markAllNotificationsRead,
     toastAlert,
     clearToast,
   } = useApp();
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showNotifMenu, setShowNotifMenu] = useState(false);
   const [showSsoModal, setShowSsoModal] = useState(false);
 
   const navItems = [
@@ -337,70 +331,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
           </div>
 
           <div className="flex items-center space-x-4">
-            {/* Notification Bell with polling counter */}
-            <div className="relative">
-              <button
-                onClick={() => setShowNotifMenu(!showNotifMenu)}
-                className="relative p-2 rounded-md hover:bg-[#F6F6F4] text-[#4A4A46] transition-colors"
-                title="Trung tâm thông báo (Polling 30s)"
-              >
-                <Bell size={18} />
-                {unreadCount > 0 && (
-                  <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-[#7c9cd0] text-white text-[10px] flex items-center justify-center font-bold shadow-xs">
-                    {unreadCount}
-                  </span>
-                )}
-              </button>
-
-              {/* Notification Dropdown Panel */}
-              {showNotifMenu && (
-                <div className="absolute right-0 mt-2 w-80 bg-white border border-[#E7E7E4] rounded-lg shadow-xl p-3 z-50">
-                  <div className="flex items-center justify-between pb-2 border-b border-[#F0F0EE]">
-                    <div className="text-xs font-bold text-[#1C1C1A]">THÔNG BÁO HỆ THỐNG</div>
-                    {unreadCount > 0 && (
-                      <button
-                        onClick={markAllNotificationsRead}
-                        className="text-[11px] text-[#4A4A46] hover:text-[#1C1C1A] underline"
-                      >
-                        Đọc tất cả
-                      </button>
-                    )}
-                  </div>
-                  <div className="max-h-72 overflow-y-auto mt-2 space-y-2">
-                    {notifications.length === 0 ? (
-                      <div className="py-6 text-center text-xs text-[#8A8A85]">
-                        Không có thông báo mới
-                      </div>
-                    ) : (
-                      notifications.map((n) => (
-                        <div
-                          key={n.id}
-                          onClick={() => markNotificationRead(n.id)}
-                          className={`p-2 rounded text-xs transition-colors cursor-pointer border ${
-                            n.is_read
-                              ? 'bg-white border-transparent text-[#8A8A85]'
-                              : 'bg-[#F9F9F8] border-[#E7E7E4] text-[#1C1C1A] font-medium'
-                          }`}
-                        >
-                          <div className="flex items-center justify-between text-[11px] text-[#4A4A46]">
-                            <span className="font-semibold text-[#1C1C1A] truncate">{n.title}</span>
-                            <span className="text-[10px] text-[#8A8A85]">
-                              {new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-[#4A4A46] mt-0.5 line-clamp-2">
-                            {n.message}
-                          </p>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
             {/* Current Role Badge */}
-            <div className="flex items-center space-x-2 border-l border-[#E7E7E4] pl-4">
+            <div className="flex items-center space-x-2">
               <span className="text-xs text-[#8A8A85]">Phạm vi:</span>
               <span className="text-xs font-semibold px-2.5 py-0.5 rounded bg-[#7c9cd0]/12 text-[#24487c] border border-[#7c9cd0]/30">
                 {currentUser?.view_scope === 'all'
@@ -425,8 +357,14 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 
       {/* Google SSO Information Modal */}
       {showSsoModal && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white border border-[#E7E7E4] rounded-lg shadow-xl max-w-md w-full p-6">
+        <div
+          className="fixed inset-0 bg-black/30 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+          onClick={() => setShowSsoModal(false)}
+        >
+          <div
+            className="bg-white border border-[#E7E7E4] rounded-lg shadow-xl max-w-md w-full p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between pb-3 border-b border-[#F0F0EE]">
               <div className="flex items-center space-x-2">
                 <Shield size={18} className="text-[#1C1C1A]" />

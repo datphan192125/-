@@ -937,8 +937,14 @@ export const AwardsModule: React.FC = () => {
 
       {/* Submit Proposal Modal (Admin can propose anyone in any team) */}
       {isSubmitModalOpen && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white border border-[#E7E7E4] rounded-lg shadow-2xl max-w-lg w-full p-6 animate-in fade-in duration-150">
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4"
+          onClick={() => setIsSubmitModalOpen(false)}
+        >
+          <div
+            className="bg-white border border-[#E7E7E4] rounded-lg shadow-2xl max-w-lg w-full p-6 animate-in fade-in duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 className="font-bold text-base text-[#1C1C1A] mb-1">
               Đề Xuất Khen Thưởng Mới
             </h3>
@@ -1020,8 +1026,14 @@ export const AwardsModule: React.FC = () => {
 
       {/* Review Proposal Modal (Master approves and sets visibility mode) */}
       {selectedProposalToReview && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white border border-[#E7E7E4] rounded-xl shadow-2xl max-w-xl w-full p-6 my-8 animate-in fade-in duration-150">
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 overflow-y-auto"
+          onClick={() => setSelectedProposalToReview(null)}
+        >
+          <div
+            className="bg-white border border-[#E7E7E4] rounded-xl shadow-2xl max-w-xl w-full p-6 my-8 animate-in fade-in duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 className="font-bold text-base text-[#1C1C1A] mb-1">
               Phê Duyệt Đề Xuất Vinh Danh & Chọn Chế Độ Hiển Thị
             </h3>
@@ -1224,8 +1236,14 @@ export const AwardsModule: React.FC = () => {
 
       {/* Edit Visibility Modal (For already approved awards) */}
       {editingVisibilityProposal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white border border-[#E7E7E4] rounded-xl shadow-2xl max-w-xl w-full p-6 my-8 animate-in fade-in duration-150">
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 overflow-y-auto"
+          onClick={() => setEditingVisibilityProposal(null)}
+        >
+          <div
+            className="bg-white border border-[#E7E7E4] rounded-xl shadow-2xl max-w-xl w-full p-6 my-8 animate-in fade-in duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h3 className="font-bold text-base text-[#1C1C1A] mb-1">
               Thay Đổi Chế Độ Hiển Thị Giải Thưởng
             </h3>
@@ -1402,8 +1420,17 @@ export const AwardsModule: React.FC = () => {
 
       {/* Reject Proposal Modal (Khi Từ Chối sẽ có thêm mục lí do, nhưng không bắt buộc nhập) */}
       {rejectModalProposal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-150">
-          <div className="bg-white border border-[#E7E7E4] rounded-xl shadow-2xl max-w-md w-full p-6 my-8 animate-in zoom-in-95 duration-150">
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-150"
+          onClick={() => {
+            setRejectModalProposal(null);
+            setRejectionReason('');
+          }}
+        >
+          <div
+            className="bg-white border border-[#E7E7E4] rounded-xl shadow-2xl max-w-md w-full p-6 my-8 animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center space-x-2 text-[#DC2626] mb-1">
               <XCircle size={20} />
               <h3 className="font-bold text-base text-[#1C1C1A]">
@@ -1468,8 +1495,17 @@ export const AwardsModule: React.FC = () => {
 
       {/* Revision Request Modal (Yêu cầu xem xét lại: Thêm ô để điền những thông tin cần chỉnh sửa hoặc Master cần thêm thông tin từ người đề xuất) */}
       {revisionModalProposal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-150">
-          <div className="bg-white border border-[#E7E7E4] rounded-xl shadow-2xl max-w-lg w-full p-6 my-8 animate-in zoom-in-95 duration-150">
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-150"
+          onClick={() => {
+            setRevisionModalProposal(null);
+            setRevisionNotes('');
+          }}
+        >
+          <div
+            className="bg-white border border-[#E7E7E4] rounded-xl shadow-2xl max-w-lg w-full p-6 my-8 animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center space-x-2 text-[#D97706] mb-1">
               <RotateCcw size={20} />
               <h3 className="font-bold text-base text-[#1C1C1A]">
@@ -1545,8 +1581,14 @@ export const AwardsModule: React.FC = () => {
         const visType = previewProposalDetail.visibility_type || 'public';
 
         return (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-150">
-            <div className="bg-white border border-[#E7E7E4] rounded-xl shadow-2xl max-w-xl w-full p-6 my-8 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in duration-150"
+            onClick={() => setPreviewProposalDetail(null)}
+          >
+            <div
+              className="bg-white border border-[#E7E7E4] rounded-xl shadow-2xl max-w-xl w-full p-6 my-8 animate-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="flex items-center justify-between pb-3 border-b border-[#F0F0EE]">
                 <div className="flex items-center space-x-2.5">
                   <div className="p-2 rounded-lg bg-[#7c9cd0]/10 text-[#24487c]">

@@ -5,7 +5,6 @@ import {
   Award,
   Calendar,
   CheckCircle,
-  Bell,
   Briefcase,
   FileText,
   Mail,
@@ -25,12 +24,6 @@ export const UserProfileModule: React.FC = () => {
     triggerToast,
     updateUser,
   } = useApp();
-
-  const [notificationPrefs, setNotificationPrefs] = useState({
-    kpi_updates: true,
-    award_results: true,
-    mendan_alerts: true,
-  });
 
   const myTeam = teams.find((t) => t.id === currentUser.team_id);
   const myKpis = kpiRecords.filter((r) => r.user_id === currentUser.id);
@@ -73,14 +66,6 @@ export const UserProfileModule: React.FC = () => {
     latestKpi && latestKpi.target > 0
       ? ((latestKpi.achieved / latestKpi.target) * 100).toFixed(1)
       : '0.0';
-
-  const handleTogglePref = (key: keyof typeof notificationPrefs) => {
-    setNotificationPrefs((prev) => {
-      const updated = { ...prev, [key]: !prev[key] };
-      triggerToast('Đã Lưu Tuỳ Chọn', 'Tuỳ chọn thông báo tài khoản đã được cập nhật.');
-      return updated;
-    });
-  };
 
   return (
     <div className="space-y-6">
@@ -253,67 +238,34 @@ export const UserProfileModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Honors and Notification Preferences */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Honors Badges */}
-        <div className="bg-white border border-[#E7E7E4] rounded-lg p-5">
-          <h2 className="text-xs font-bold text-[#1C1C1A] uppercase tracking-wider mb-4 flex items-center space-x-2">
-            <Award size={15} />
-            <span>Giải Thưởng Đã Đạt</span>
-          </h2>
+      {/* Honors Badges */}
+      <div className="bg-white border border-[#E7E7E4] rounded-lg p-5">
+        <h2 className="text-xs font-bold text-[#1C1C1A] uppercase tracking-wider mb-4 flex items-center space-x-2">
+          <Award size={15} />
+          <span>Giải Thưởng Đã Đạt</span>
+        </h2>
 
-          {myAwards.length === 0 ? (
-            <div className="py-8 text-center text-xs text-[#8A8A85]">
-              Chưa có danh hiệu vinh danh nào trong các kỳ đã xuất bản.
-            </div>
-          ) : (
-            <div className="flex flex-wrap gap-2.5">
-              {myAwards.map((a) => {
-                const cat = awardCategories.find((c) => c.id === a.category_id);
-                return (
-                  <div
-                    key={a.id}
-                    title={`${cat?.name || 'Vinh danh'} - Kỳ ${a.quarter_id}/2026: ${a.reason}`}
-                    className="p-2.5 bg-[#FBF7EE] border border-[#E5D7A9] rounded flex items-center space-x-2 text-xs shadow-2xs hover:border-[#B08A3E] transition-all cursor-pointer group"
-                  >
-                    <Award size={20} className="text-[#B08A3E] group-hover:scale-110 transition-transform" />
-                    <span className="font-bold text-[11px] text-[#B08A3E] font-mono">{a.quarter_id}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Notification Preferences (Module 6.2) */}
-        <div className="bg-white border border-[#E7E7E4] rounded-lg p-5">
-          <h2 className="text-xs font-bold text-[#1C1C1A] uppercase tracking-wider mb-4 flex items-center space-x-2">
-            <Bell size={15} />
-            <span>Cài Đặt Nhận Thông Báo (Polling 30s)</span>
-          </h2>
-
-          <div className="space-y-3 text-xs divide-y divide-[#F0F0EE]">
-            {[
-              { key: 'kpi_updates', label: 'Cập nhật chỉ số KPI & Import Excel' },
-              { key: 'award_results', label: 'Kết quả duyệt vinh danh & Bảng vàng' },
-              { key: 'mendan_alerts', label: 'Lịch phỏng vấn Mendan & Biên bản mới' },
-            ].map((item) => (
-              <div
-                key={item.key}
-                className="pt-2.5 flex items-center justify-between cursor-pointer"
-                onClick={() => handleTogglePref(item.key as any)}
-              >
-                <span className="text-[#4A4A46] font-medium">{item.label}</span>
-                <input
-                  type="checkbox"
-                  checked={(notificationPrefs as any)[item.key]}
-                  onChange={() => handleTogglePref(item.key as any)}
-                  className="rounded border-[#E7E7E4] accent-[#7c9cd0] cursor-pointer"
-                />
-              </div>
-            ))}
+        {myAwards.length === 0 ? (
+          <div className="py-8 text-center text-xs text-[#8A8A85]">
+            Chưa có danh hiệu vinh danh nào trong các kỳ đã xuất bản.
           </div>
-        </div>
+        ) : (
+          <div className="flex flex-wrap gap-2.5">
+            {myAwards.map((a) => {
+              const cat = awardCategories.find((c) => c.id === a.category_id);
+              return (
+                <div
+                  key={a.id}
+                  title={`${cat?.name || 'Vinh danh'} - Kỳ ${a.quarter_id}/2026: ${a.reason}`}
+                  className="p-2.5 bg-[#FBF7EE] border border-[#E5D7A9] rounded flex items-center space-x-2 text-xs shadow-2xs hover:border-[#B08A3E] transition-all cursor-pointer group"
+                >
+                  <Award size={20} className="text-[#B08A3E] group-hover:scale-110 transition-transform" />
+                  <span className="font-bold text-[11px] text-[#B08A3E] font-mono">{a.quarter_id}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

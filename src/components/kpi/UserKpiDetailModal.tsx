@@ -37,10 +37,7 @@ interface UserKpiDetailModalProps {
   onClose: () => void;
 }
 
-const cleanName = (name: string | undefined): string => {
-  if (!name) return '—';
-  return name.replace(/\s*[\(\[\{].*?[\)\]\}]\s*/g, '').trim();
-};
+import { cleanName } from '../../utils/format';
 
 export const UserKpiDetailModal: React.FC<UserKpiDetailModalProps> = ({
   record: initialRecord,

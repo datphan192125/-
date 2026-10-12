@@ -19,6 +19,7 @@ import {
 import { useApp } from '../../context/AppContext';
 import { KpiRecord, RANK_STYLE_CONFIG } from '../../types';
 import { UserKpiDetailModal } from '../kpi/UserKpiDetailModal';
+import { cleanName, formatNumber, getRankBadgeColor } from '../../utils/format';
 
 export const HomeDashboard: React.FC = () => {
   const {
@@ -35,9 +36,6 @@ export const HomeDashboard: React.FC = () => {
 
   // State to open User KPI drill-down modal directly from dashboard
   const [selectedKpiRecord, setSelectedKpiRecord] = useState<KpiRecord | null>(null);
-
-  // Helper cleanName
-  const cleanName = (name: string) => name.replace(/\s*\([^)]*\)/g, '').trim();
 
   // 1. Current active quarter or latest configured quarter
   const activeQuarter = useMemo(() => {

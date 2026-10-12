@@ -6,7 +6,6 @@ import {
   MendanRecord,
   AwardCategory,
   AwardProposal,
-  AppNotification,
   QuarterConfig,
   KpiThresholds,
   AuditLog,
@@ -19,7 +18,6 @@ import {
   CriteriaProposal,
 } from '../types';
 import { storageService, excelService } from '../services/storage';
-import { notificationPoller } from '../services/notificationPoller';
 
 export type NavTab = 
   | 'home'
@@ -43,8 +41,6 @@ interface AppContextType {
   quarterConfigs: QuarterConfig[];
   kpiThresholds: KpiThresholds;
   auditLogs: AuditLog[];
-  notifications: AppNotification[];
-  unreadCount: number;
 
   // Navigation
   activeTab: NavTab;
@@ -84,6 +80,14 @@ interface AppContextType {
     filename: string,
     periodLabel: string
   ) => Promise<{ successCount: number; errorCount: number }>;
+  applyTaskKpi: (
+    rows: {
+      userId: string;
+      newAchieved: number;
+      achievedFixed?: number;
+    }[],
+    meta: { year: number; month: number; filename: string }
+  ) => Promise<{ updatedCount: number; createdCount: number }>;
   exportCurrentKpis: () => void;
   downloadSampleTemplate: () => void;
   createOrUpdateMendan: (record: Partial<MendanRecord> & { id?: string }) => void;
@@ -126,12 +130,16 @@ interface AppContextType {
   updateQuarterConfig: (config: QuarterConfig) => void;
   updateKpiThresholds: (thresholds: KpiThresholds) => void;
   updateKpiRecord: (record: KpiRecord) => void;
+  bulkUpdateKpiTargets: (
+    quarter: string,
+    year: number,
+    updates: { userId: string; teamId: string; target: number }[]
+  ) => void;
   updateUser: (user: User) => void;
   createUser: (user: Omit<User, 'id'>) => void;
   updateTeam: (team: Team) => void;
   createTeam: (team: Omit<Team, 'id'>) => void;
-  markNotificationRead: (id: string) => void;
-  markAllNotificationsRead: () => void;
+  deleteTeam: (teamId: string) => void;
   resetAllSystemData: () => void;
   triggerToast: (title: string, message: string) => void;
   toastAlert: { title: string; message: string } | null;
@@ -150,7 +158,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [quarterConfigs, setQuarterConfigs] = useState<QuarterConfig[]>([]);
   const [kpiThresholds, setKpiThresholds] = useState<KpiThresholds>(storageService.getKpiThresholds());
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string>('user-admin');
 
   // Evaluation Rubric Data
@@ -193,20 +200,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCriteriaProposals(storageService.getCriteriaProposals());
     const initialUid = storageService.getCurrentUserId();
     setCurrentUserId(initialUid);
-
-    // Start notification poller
-    notificationPoller.start();
-    const unsubscribe = notificationPoller.subscribe((notifs, newAlert) => {
-      setNotifications(notifs);
-      if (newAlert) {
-        triggerToast(newAlert.title, newAlert.message);
-      }
-    });
-
-    return () => {
-      unsubscribe();
-      notificationPoller.stop();
-    };
   }, []);
 
   const currentUser = useMemo(() => {
@@ -216,7 +209,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const switchUser = (userId: string) => {
     setCurrentUserId(userId);
     storageService.setCurrentUserId(userId);
-    notificationPoller.poll();
     const newUser = users.find((u) => u.id === userId);
     triggerToast(
       'Chuyển đổi tài khoản',
@@ -291,11 +283,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return records;
   }, [kpiRecords, selectedTeamId, selectedQuarter, selectedMonth, currentUser]);
 
-  const unreadCount = useMemo(() => {
-    return notifications.filter((n) => !n.is_read).length;
-  }, [notifications]);
-
-  // Bulk Apply Imported KPI with Audit Log & Notifications (Module 2 & 6 & 7)
+  // Bulk Apply Imported KPI with Audit Log (Module 2 & 6 & 7)
   const bulkApplyImportedKpis = async (
     rows: KpiImportRow[],
     filename: string,
@@ -308,13 +296,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const updatedKpis = [...kpiRecords];
     const userByCode = new Map(users.map((u) => [u.employee_code.trim().toUpperCase(), u]));
-    const notifiedUserIds = new Set<string>();
 
     validRows.forEach((row) => {
       const user = userByCode.get(row.employee_code.trim().toUpperCase());
       if (!user) return;
-
-      notifiedUserIds.add(user.id);
       const existingIdx = updatedKpis.findIndex(
         (r) => r.user_id === user.id && (r.period_label.includes(row.period) || r.period_label === periodLabel)
       );
@@ -369,17 +354,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
     setAuditLogs((prev) => [log, ...prev]);
 
-    // Send notification to affected users
-    notifiedUserIds.forEach((uid) => {
-      notificationPoller.notifyNewItem({
-        user_id: uid,
-        title: 'KPI cá nhân vừa được cập nhật',
-        message: `Chỉ số KPI kỳ ${periodLabel} đã được quản lý cập nhật từ hệ thống.`,
-        type: 'kpi_updated',
-        link_module: 'kpi',
-      });
-    });
-
     triggerToast(
       'Nhập KPI Thành Công',
       `Đã cập nhật ${validRows.length} bản ghi vào hệ thống từ ${filename}.`
@@ -389,6 +363,92 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       successCount: validRows.length,
       errorCount: rows.length - validRows.length,
     };
+  };
+
+  const applyTaskKpi = async (
+    rows: {
+      userId: string;
+      newAchieved: number;
+      achievedFixed?: number;
+    }[],
+    meta: { year: number; month: number; filename: string }
+  ) => {
+    const { year, month, filename } = meta;
+    const updatedKpis = [...kpiRecords];
+    let updatedCount = 0;
+    let createdCount = 0;
+    const nowIso = new Date().toISOString();
+
+    // Tìm quarter_id từ quarterConfigs hoặc fallback
+    const matchedQuarter = quarterConfigs.find(
+      (q) => q.year === year && q.months.includes(month)
+    );
+    const quarterId = matchedQuarter?.id || (month <= 3 ? 'Q1' : month <= 6 ? 'Q2' : month <= 9 ? 'Q3' : 'Q4');
+    const periodLabel = `Tháng ${month < 10 ? `0${month}` : month}/${year}`;
+
+    rows.forEach((r) => {
+      const existingIdx = updatedKpis.findIndex(
+        (rec) => rec.user_id === r.userId && (rec.year === year || !rec.year) && rec.month === month
+      );
+
+      if (existingIdx >= 0) {
+        // CHỈ cập nhật achieved, achieved_fixed, updated_at, evaluator_id; GIỮ NGUYÊN target, miss_count, late_count, projects, notes
+        const existing = updatedKpis[existingIdx];
+        updatedKpis[existingIdx] = {
+          ...existing,
+          achieved: r.newAchieved,
+          achieved_fixed: r.achievedFixed,
+          evaluator_id: currentUser.id,
+          updated_at: nowIso,
+        };
+        updatedCount++;
+      } else {
+        // Chưa có thì tạo mới với target = 0
+        const user = users.find((u) => u.id === r.userId);
+        const newRecord: KpiRecord = {
+          id: `kpi-task-${Date.now()}-${r.userId}`,
+          user_id: r.userId,
+          team_id: user?.team_id || '',
+          year,
+          quarter_id: quarterId,
+          month,
+          period_label: periodLabel,
+          target: 0,
+          achieved: r.newAchieved,
+          achieved_fixed: r.achievedFixed,
+          unit: 'task',
+          miss_count: 0,
+          late_count: 0,
+          projects: [],
+          notes: 'Khởi tạo tự động từ file task',
+          evaluator_id: currentUser.id,
+          updated_at: nowIso,
+        };
+        updatedKpis.push(newRecord);
+        createdCount++;
+      }
+    });
+
+    setKpiRecords(updatedKpis);
+    storageService.saveKpiRecords(updatedKpis);
+
+    // Ghi AuditLog
+    const log = storageService.addAuditLog({
+      user_id: currentUser.id,
+      user_name: currentUser.full_name,
+      action: 'import_kpi',
+      details: `Cập nhật KPI từ file task (${filename}): Cập nhật ${updatedCount}, tạo mới ${createdCount} bản ghi kỳ ${periodLabel}`,
+      file_name: filename,
+      records_count: rows.length,
+    });
+    setAuditLogs((prev) => [log, ...prev]);
+
+    triggerToast(
+      'Cập Nhật KPI Từ File Task',
+      `Đã cập nhật ${updatedCount} và tạo mới ${createdCount} nhân sự cho kỳ ${periodLabel}.`
+    );
+
+    return { updatedCount, createdCount };
   };
 
   const exportCurrentKpis = () => {
@@ -495,14 +555,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setAwardProposals(list);
     storageService.saveAwardProposals(list);
 
-    // Notify admins
-    notificationPoller.notifyNewItem({
-      user_id: 'user-admin',
-      title: 'Đề xuất khen thưởng mới cần duyệt',
-      message: `${currentUser.full_name} đã đề xuất giải thưởng cho nhân sự trong kỳ.`,
-      type: 'award_result',
-      link_module: 'awards',
-    });
     triggerToast('Đã Gửi Đề Xuất', 'Đề xuất khen thưởng đang chờ Admin phê duyệt.');
   };
 
@@ -559,29 +611,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         } đề xuất khen thưởng ID: ${proposalId}`,
       });
       setAuditLogs((prev) => [log, ...prev]);
-
-      // Notify the proposer
-      const statusTitle =
-        status === 'approved'
-          ? 'duyệt'
-          : status === 'rejected'
-          ? 'từ chối'
-          : 'yêu cầu xem xét lại';
-      notificationPoller.notifyNewItem({
-        user_id: list[idx].proposed_by,
-        title: `Đề xuất khen thưởng đã được ${statusTitle}`,
-        message:
-          extra?.revision_notes ||
-          extra?.rejection_reason ||
-          feedback ||
-          (status === 'approved'
-            ? 'Chúc mừng! Đề xuất đã được thông qua.'
-            : status === 'rejected'
-            ? 'Đề xuất chưa đạt tiêu chuẩn kỳ này.'
-            : 'Vui lòng bổ sung hoặc chỉnh sửa thông tin đề xuất.'),
-        type: 'award_result',
-        link_module: 'awards',
-      });
 
       const modeText =
         status === 'approved'
@@ -833,16 +862,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setAwardProposals(updatedProps);
       storageService.saveAwardProposals(updatedProps);
 
-      if (isPublished) {
-        notificationPoller.notifyNewItem({
-          user_id: 'all',
-          title: `Bảng Vàng ${quarterId} đã chính thức xuất bản!`,
-          message: `Kính mời toàn thể nhân sự bộ phận xem danh sách vinh danh các cá nhân xuất sắc.`,
-          type: 'award_result',
-          link_module: 'awards',
-        });
-      }
-
       triggerToast(
         isPublished ? 'Đã Xuất Bản Bảng Vàng' : 'Đã Đóng Bảng Vàng',
         `Trạng thái công khai Quý ${quarterId}: ${isPublished ? 'Công Khai Toàn Bộ Phận' : 'Ẩn (Chỉ Nội Bộ Leader/Admin)'}`
@@ -868,6 +887,47 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setKpiRecords(list);
     storageService.saveKpiRecords(list);
     triggerToast('Cập Nhật Đề Án & KPI', `Đã cập nhật danh sách đề án kỳ ${record.period_label}.`);
+  };
+
+  const bulkUpdateKpiTargets = (
+    quarter: string,
+    year: number,
+    updates: { userId: string; teamId: string; target: number }[]
+  ) => {
+    let list = [...kpiRecords];
+    updates.forEach(({ userId, teamId, target }) => {
+      const idx = list.findIndex(
+        (r) => r.user_id === userId && r.quarter_id === quarter && (r.year === year || !r.year)
+      );
+      if (idx >= 0) {
+        list[idx] = {
+          ...list[idx],
+          target,
+          updated_at: new Date().toISOString(),
+        };
+      } else {
+        const u = users.find((x) => x.id === userId);
+        list.push({
+          id: `kpi-${userId}-${quarter}-${year}`,
+          user_id: userId,
+          team_id: teamId || u?.team_id || '',
+          year,
+          quarter_id: quarter,
+          month: quarter === 'Q1' ? 3 : quarter === 'Q2' ? 6 : quarter === 'Q3' ? 9 : 12,
+          period_label: `${quarter}/${year}`,
+          target,
+          achieved: 0,
+          unit: 'task',
+          miss_count: 0,
+          late_count: 0,
+          projects: [],
+          updated_at: new Date().toISOString(),
+        });
+      }
+    });
+    setKpiRecords(list);
+    storageService.saveKpiRecords(list);
+    triggerToast('Thiết Lập KPI Team', `Đã cập nhật chỉ tiêu KPI cho các Team kỳ ${quarter}/${year}.`);
   };
 
   const updateUser = (user: User) => {
@@ -906,16 +966,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     triggerToast('Tạo Team Mới', `Đã tạo ${newTeam.name}.`);
   };
 
-  const markNotificationRead = (id: string) => {
-    const list = notifications.map((n) => (n.id === id ? { ...n, is_read: true } : n));
-    setNotifications(list);
-    storageService.saveNotifications(list);
-  };
+  const deleteTeam = (teamId: string) => {
+    const teamToDelete = teams.find((t) => t.id === teamId);
+    if (!teamToDelete) return;
 
-  const markAllNotificationsRead = () => {
-    const list = notifications.map((n) => ({ ...n, is_read: true }));
-    setNotifications(list);
-    storageService.saveNotifications(list);
+    // Re-link child teams to parent of deleted team or null
+    const list = teams
+      .filter((t) => t.id !== teamId)
+      .map((t) => {
+        if (t.parent_team_id === teamId) {
+          return { ...t, parent_team_id: teamToDelete.parent_team_id || null };
+        }
+        return t;
+      });
+
+    setTeams(list);
+    storageService.saveTeams(list);
+    triggerToast('Xóa Team Thành Công', `Đã xóa team/khối ${teamToDelete.name}.`);
   };
 
   const saveMemberEvaluation = (record: MemberEvaluationRecord) => {
@@ -963,14 +1030,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setCriteriaProposals(list);
     storageService.saveCriteriaProposals(list);
 
-    notificationPoller.notifyNewItem({
-      user_id: 'user-master',
-      title: 'Đề xuất thay đổi tiêu chuẩn đánh giá',
-      message: `${currentUser.full_name} (Admin) vừa gửi đề xuất điều chỉnh bảng tiêu chuẩn & thang điểm cần Master duyệt.`,
-      type: 'kpi_updated',
-      link_module: 'mendan',
-    });
-
     triggerToast('Đã Gửi Đề Xuất Cho Master', 'Chỉnh sửa của Admin đã được chuyển đến Master để duyệt trước khi áp dụng.');
     return { status: 'proposed' };
   };
@@ -1005,14 +1064,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     } else {
       triggerToast('Đã Từ Chối Đề Xuất', 'Master đã từ chối áp dụng đề xuất chỉnh sửa tiêu chuẩn.');
     }
-
-    notificationPoller.notifyNewItem({
-      user_id: list[idx].proposed_by,
-      title: status === 'approved' ? 'Đề xuất tiêu chuẩn đã được duyệt' : 'Đề xuất tiêu chuẩn bị từ chối',
-      message: `Master đã ${status === 'approved' ? 'phê duyệt' : 'từ chối'} đề xuất thay đổi bảng tiêu chuẩn đánh giá của Admin.`,
-      type: 'kpi_updated',
-      link_module: 'mendan',
-    });
   };
 
   const updateMendanVisibility = (
@@ -1078,8 +1129,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         quarterConfigs,
         kpiThresholds,
         auditLogs,
-        notifications,
-        unreadCount,
 
         activeTab,
         setActiveTab,
@@ -1110,6 +1159,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         updateMendanStatus,
 
         bulkApplyImportedKpis,
+        applyTaskKpi,
         exportCurrentKpis,
         downloadSampleTemplate,
         createOrUpdateMendan,
@@ -1124,12 +1174,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         updateQuarterConfig,
         updateKpiThresholds,
         updateKpiRecord,
+        bulkUpdateKpiTargets,
         updateUser,
         createUser,
         updateTeam,
         createTeam,
-        markNotificationRead,
-        markAllNotificationsRead,
+        deleteTeam,
         resetAllSystemData,
         triggerToast,
         toastAlert,

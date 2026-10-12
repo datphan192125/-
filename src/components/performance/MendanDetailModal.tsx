@@ -24,10 +24,7 @@ interface MendanDetailModalProps {
   onSaveMendan: (record: Partial<MendanRecord>) => void;
 }
 
-const cleanName = (name: string | undefined): string => {
-  if (!name) return '—';
-  return name.replace(/\s*[\(\[\{].*?[\)\]\}]\s*/g, '').trim();
-};
+import { cleanName } from '../../utils/format';
 
 export const MendanDetailModal: React.FC<MendanDetailModalProps> = ({
   isOpen,

@@ -92,6 +92,7 @@ export interface KpiRecord {
   period_label: string; // e.g., 'Tháng 03/2026', 'Quý 1/2026'
   target: number;
   achieved: number;
+  achieved_fixed?: number;
   unit: string; // 'task', 'hồ sơ', 'giờ'
   miss_count: number;
   late_count: number;
@@ -216,25 +217,6 @@ export interface AwardProposal {
   created_at: string;
   reviewed_at?: string;
   reviewed_by?: string;
-}
-
-export type NotificationType = 'kpi_updated' | 'award_result' | 'mendan_scheduled';
-
-export interface AppNotification {
-  id: string;
-  user_id: string; // specific user or 'all'
-  title: string;
-  message: string;
-  type: NotificationType;
-  link_module?: string;
-  is_read: boolean;
-  created_at: string;
-}
-
-export interface NotificationPreferences {
-  kpi_updates: boolean;
-  award_results: boolean;
-  mendan_alerts: boolean;
 }
 
 export interface QuarterConfig {
