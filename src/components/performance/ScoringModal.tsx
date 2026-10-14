@@ -138,6 +138,15 @@ export const ScoringModal: React.FC<ScoringModalProps> = ({
     return modalFilteredUsers.findIndex((u) => u.id === user.id);
   }, [modalFilteredUsers, user, isMember]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   const prevScoringUser = !isMember && currentScoringUserIndex > 0 ? modalFilteredUsers[currentScoringUserIndex - 1] : null;
   const nextScoringUser =
     !isMember && currentScoringUserIndex >= 0 && currentScoringUserIndex < modalFilteredUsers.length - 1

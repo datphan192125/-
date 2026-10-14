@@ -102,39 +102,6 @@ export const DivisionProgressTable: React.FC<DivisionProgressTableProps> = ({
 
   return (
     <div className="bg-white border border-[#E7E7E4] rounded-xl overflow-hidden shadow-2xs">
-      <div className="px-5 py-3 border-b border-[#F0F0EE] flex items-center justify-between bg-white min-h-[52px]">
-        <div className="flex items-center space-x-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#7c9cd0]" />
-          <h2 className="text-xs font-bold text-[#1C1C1A] uppercase tracking-wider">
-            Bảng So Sánh Các Khối / Team
-          </h2>
-          {selectedTeamId !== 'all' && (
-            <span className="ml-2 text-xs font-semibold px-2.5 py-0.5 rounded bg-[#7c9cd0] text-white flex items-center space-x-1.5 shadow-2xs">
-              <span>Đang chọn: {selectedTeamName}</span>
-              <button
-                type="button"
-                onClick={() => setSelectedTeamId('all')}
-                className="ml-1 hover:bg-white/25 rounded px-1 font-bold leading-none cursor-pointer"
-                title="Hủy chọn (hiển thị rõ tất cả team)"
-              >
-                ✕
-              </button>
-            </span>
-          )}
-        </div>
-        <div className="flex items-center space-x-2">
-          {selectedTeamId !== 'all' && (
-            <button
-              type="button"
-              onClick={() => setSelectedTeamId('all')}
-              className="text-xs text-[#24487c] font-semibold bg-[#7c9cd0]/15 px-2.5 py-1 rounded border border-[#7c9cd0]/30 hover:bg-[#7c9cd0]/25 transition-colors cursor-pointer"
-            >
-              Bỏ chọn & hiện rõ tất cả team
-            </button>
-          )}
-        </div>
-      </div>
-
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs min-w-[750px]">
           <colgroup>

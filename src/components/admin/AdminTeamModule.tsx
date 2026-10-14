@@ -113,9 +113,6 @@ export const AdminTeamModule: React.FC = () => {
           <h1 className="text-2xl font-bold tracking-tight text-[#1C1C1A]">
             Quản Lý Nhân Sự & Cấu Trúc Team (RBAC)
           </h1>
-          <p className="text-xs text-[#8A8A85] mt-1">
-            Phân quyền vai trò (Role), phạm vi hiển thị (ViewScope) và sơ đồ tổ chức 4 khối nghiệp vụ
-          </p>
         </div>
 
         <div className="flex items-center space-x-2.5">
@@ -191,7 +188,7 @@ export const AdminTeamModule: React.FC = () => {
               <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#8A8A85]" />
             </div>
             <div className="text-xs text-[#8A8A85]">
-              Ràng buộc Google SSO domain: <span className="font-mono text-[#1C1C1A]">@dymvietnam.net</span>
+              Google SSO: <span className="text-[#15803D] font-medium">Hỗ trợ mọi email (không ràng buộc domain)</span>
             </div>
           </div>
 
@@ -451,11 +448,12 @@ export const AdminTeamModule: React.FC = () => {
 
               <div>
                 <label className="font-semibold text-[#1C1C1A] block mb-1">
-                  Email Công Ty (Google SSO)
+                  Email (Google SSO / Mọi domain email)
                 </label>
                 <input
                   required
                   type="email"
+                  placeholder="ví dụ: user@gmail.com, user@company.com..."
                   value={userFormData.email || ''}
                   onChange={(e) => setUserFormData({ ...userFormData, email: e.target.value })}
                   className="w-full bg-[#F6F6F4] border border-[#E7E7E4] rounded p-2 text-xs text-[#1C1C1A] font-mono"

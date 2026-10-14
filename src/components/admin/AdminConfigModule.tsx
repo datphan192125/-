@@ -42,9 +42,6 @@ export const AdminConfigModule: React.FC = () => {
           <h1 className="text-2xl font-bold tracking-tight text-[#1C1C1A]">
             Cấu Hình Hệ Thống & Tiêu Chí Đánh Giá (Master Config)
           </h1>
-          <p className="text-xs text-[#8A8A85] mt-1">
-            Quản trị chu kỳ Quý, danh mục khen thưởng, ngưỡng % KPI và nhật ký kiểm toán (Audit Log)
-          </p>
         </div>
 
         <div className="flex p-0.5 rounded-md bg-[#F0F0EE] border border-[#E7E7E4] text-xs">

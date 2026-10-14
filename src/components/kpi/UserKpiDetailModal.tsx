@@ -75,6 +75,14 @@ export const UserKpiDetailModal: React.FC<UserKpiDetailModalProps> = ({
     setActiveRecord(initialRecord);
   }, [initialRecord]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const [isEditingProjects, setIsEditingProjects] = useState(false);
   const [projectList, setProjectList] = useState<ProjectDetail[]>([]);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);

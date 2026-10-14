@@ -261,51 +261,57 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
 
           {/* Quick User Switcher Menu */}
           {showUserMenu && (
-            <div
-              className={`absolute bottom-16 ${
-                isSidebarCollapsed ? 'left-14 w-60' : 'left-3 right-3'
-              } bg-white border border-[#E7E7E4] rounded-lg shadow-lg p-2 z-50`}
-            >
-              <div className="px-2 py-1 text-[11px] font-semibold text-[#8A8A85] border-b border-[#F0F0EE] mb-1">
-                CHUYỂN VAI TRÒ TEST (GOOGLE SSO)
-              </div>
-              <div className="max-h-56 overflow-y-auto space-y-1">
-                {users.map((u) => (
+            <>
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setShowUserMenu(false)}
+              />
+              <div
+                className={`absolute bottom-16 ${
+                  isSidebarCollapsed ? 'left-14 w-60' : 'left-3 right-3'
+                } bg-white border border-[#E7E7E4] rounded-lg shadow-lg p-2 z-50`}
+              >
+                <div className="px-2 py-1 text-[11px] font-semibold text-[#8A8A85] border-b border-[#F0F0EE] mb-1">
+                  CHUYỂN VAI TRÒ TEST (GOOGLE SSO)
+                </div>
+                <div className="max-h-56 overflow-y-auto space-y-1">
+                  {users.map((u) => (
+                    <button
+                      key={u.id}
+                      onClick={() => {
+                        switchUser(u.id);
+                        setShowUserMenu(false);
+                      }}
+                      className={`w-full text-left px-2 py-1.5 rounded text-xs flex items-center justify-between ${
+                        currentUser.id === u.id
+                          ? 'bg-[#F0F0EE] font-semibold text-[#1C1C1A]'
+                          : 'hover:bg-[#F6F6F4] text-[#4A4A46]'
+                      }`}
+                    >
+                      <div className="truncate pr-2">
+                        <div className="font-medium text-[#1C1C1A] truncate">{u.full_name}</div>
+                        <div className="text-[10px] text-[#8A8A85]">{u.email}</div>
+                      </div>
+                      <span className="text-[9px] px-1 py-0.5 rounded bg-[#F0F0EE] uppercase font-mono text-[#4A4A46]">
+                        {u.role}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <div className="border-t border-[#F0F0EE] pt-1 mt-1">
                   <button
-                    key={u.id}
                     onClick={() => {
-                      switchUser(u.id);
                       setShowUserMenu(false);
+                      setShowSsoModal(true);
                     }}
-                    className={`w-full text-left px-2 py-1.5 rounded text-xs flex items-center justify-between ${
-                      currentUser.id === u.id
-                        ? 'bg-[#F0F0EE] font-semibold text-[#1C1C1A]'
-                        : 'hover:bg-[#F6F6F4] text-[#4A4A46]'
-                    }`}
+                    className="w-full text-left px-2 py-1 rounded text-[11px] text-[#4A4A46] hover:bg-[#F6F6F4] flex items-center justify-between"
                   >
-                    <div className="truncate pr-2">
-                      <div className="font-medium text-[#1C1C1A] truncate">{u.full_name}</div>
-                      <div className="text-[10px] text-[#8A8A85]">{u.email}</div>
-                    </div>
-                    <span className="text-[9px] px-1 py-0.5 rounded bg-[#F0F0EE] uppercase font-mono text-[#4A4A46]">
-                      {u.role}
-                    </span>
+                    <span>Cấu hình Google SSO Domain</span>
+                    <ExternalLink size={12} className="text-[#8A8A85]" />
                   </button>
-                ))}
+                </div>
               </div>
-              <div className="border-t border-[#F0F0EE] pt-1 mt-1">
-                <button
-                  onClick={() => {
-                    setShowUserMenu(false);
-                    setShowSsoModal(true);
-                  }}
-                  className="w-full text-left px-2 py-1 rounded text-[11px] text-[#4A4A46] hover:bg-[#F6F6F4] flex items-center justify-between"
-                >
-                  <span>Cấu hình Google SSO Domain</span>
-                  <ExternalLink size={12} className="text-[#8A8A85]" />
-                </button>
-              </div>
-            </div>
+            </>
           )}
         </div>
       </aside>
@@ -327,7 +333,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
               {navItems.flatMap((g) => g.items).find((i) => i.id === activeTab)?.label || 'DYM 内部事務代行'}
             </span>
             <span>/</span>
-            <span>Nội bộ DYM Vietnam (@dymvietnam.net)</span>
+            <span>Nội bộ DYM Vietnam</span>
           </div>
 
           <div className="flex items-center space-x-4">
@@ -368,7 +374,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             <div className="flex items-center justify-between pb-3 border-b border-[#F0F0EE]">
               <div className="flex items-center space-x-2">
                 <Shield size={18} className="text-[#1C1C1A]" />
-                <h3 className="font-bold text-sm text-[#1C1C1A]">Xác thực Google SSO (@dymvietnam.net)</h3>
+                <h3 className="font-bold text-sm text-[#1C1C1A]">Xác thực Google SSO</h3>
               </div>
               <button
                 onClick={() => setShowSsoModal(false)}
@@ -379,15 +385,15 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
             </div>
             <div className="py-4 space-y-3 text-xs text-[#4A4A46] leading-relaxed">
               <p>
-                Hệ thống DYM 内部事務代行 v2 đã được thiết lập ràng buộc xác thực qua Google SSO với domain công ty:
+                Hệ thống DYM 内部事務代行 v2 hỗ trợ xác thực Google SSO với mọi tài khoản email (không ràng buộc domain):
               </p>
               <div className="p-3 bg-[#F6F6F4] rounded border border-[#E7E7E4] font-mono text-[11px] text-[#1C1C1A]">
-                Domain hợp lệ: @dymvietnam.net
+                Cơ chế: Cho phép mọi domain email
                 <br />
                 Tài khoản đang kết nối: {currentUser.email}
               </div>
               <p>
-                Nhân sự đăng nhập lần đầu bằng Google email công ty sẽ tự động khớp theo bảng danh sách mã nhân viên. Quản trị viên và người dùng có thể sử dụng công cụ chuyển đổi tài khoản nhanh ở góc trái dưới thanh sidebar để kiểm thử vai trò Admin, Leader, Subleader hoặc Member.
+                Nhân sự đăng nhập bằng Google email sẽ tự động khớp theo danh sách nhân viên trong hệ thống. Quản trị viên và người dùng có thể sử dụng công cụ chuyển đổi tài khoản nhanh ở góc trái dưới thanh sidebar để kiểm thử vai trò Admin, Leader, Subleader hoặc Member.
               </p>
             </div>
             <div className="flex justify-end pt-3 border-t border-[#F0F0EE]">

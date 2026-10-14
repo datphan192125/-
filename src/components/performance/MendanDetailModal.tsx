@@ -57,6 +57,15 @@ export const MendanDetailModal: React.FC<MendanDetailModalProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   const [formData, setFormData] = useState<Partial<MendanRecord>>(() => {
     if (existingRecord) {
       return {
@@ -221,8 +230,7 @@ export const MendanDetailModal: React.FC<MendanDetailModalProps> = ({
       >
         <motion.div
           layout
-          onClick={(e) => e.stopPropagation()}
-          className="flex flex-col lg:flex-row items-stretch justify-center w-full max-w-[1360px] max-h-[94vh]"
+          className="flex flex-col lg:flex-row items-stretch justify-center w-full max-w-[1360px] max-h-[94vh] pointer-events-none"
         >
           {/* ========================================================
               POP-UP BÊN TRÁI: LỊCH SỬ QUÝ TRƯỚC (HÌNH 3 BÊN TRÁI)
@@ -247,9 +255,12 @@ export const MendanDetailModal: React.FC<MendanDetailModalProps> = ({
                     : { height: 0, opacity: 0, y: -20, marginBottom: 0 }
                 }
                 transition={{ duration: 0.25 }}
-                className="shrink-0 overflow-hidden flex flex-col"
+                className="shrink-0 overflow-hidden flex flex-col pointer-events-auto"
               >
-                <div className="w-[500px] max-w-full bg-white border-2 border-[#7c9cd0]/60 rounded-lg shadow-2xl flex flex-col h-full max-h-[94vh] overflow-hidden">
+                <div
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-[500px] max-w-full bg-white border-2 border-[#7c9cd0]/60 rounded-lg shadow-2xl flex flex-col h-full max-h-[94vh] overflow-hidden"
+                >
                   {/* Left Popup Header */}
                   <div className="px-5 py-3.5 border-b border-[#E2E8F0] bg-[#F1F5F9] flex items-center justify-between shrink-0">
                     <div className="flex items-center space-x-2.5">
@@ -471,9 +482,10 @@ export const MendanDetailModal: React.FC<MendanDetailModalProps> = ({
              ======================================================== */}
           <motion.div
             layout
+            onClick={(e) => e.stopPropagation()}
             className={`w-full ${
               showHistory ? 'lg:w-[740px] xl:w-[780px]' : 'max-w-3xl'
-            } flex flex-col bg-white border border-[#E7E7E4] rounded-lg shadow-2xl max-h-[94vh] overflow-hidden`}
+            } flex flex-col bg-white border border-[#E7E7E4] rounded-lg shadow-2xl max-h-[94vh] overflow-hidden pointer-events-auto`}
           >
             {/* Modal Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-[#F0F0EE] bg-[#FAFAF9] shrink-0">

@@ -102,7 +102,7 @@ export const PerformanceModule: React.FC = () => {
   } = useApp();
 
   // Local UI States
-  const [activeTableTab, setActiveTableTab] = useState<'kpi' | 'evaluation'>('kpi');
+  const [activeTableTab, setActiveTableTab] = useState<'kpi' | 'evaluation' | 'set-kpi'>('kpi');
   const [evalQuarter, setEvalQuarter] = useState<string>('Q1');
   const [evalStatusFilter, setEvalStatusFilter] = useState<'all' | 'completed' | 'pending'>('all');
   const [evalVisibilityFilter, setEvalVisibilityFilter] = useState<'all' | 'public' | 'private'>('all');
@@ -154,6 +154,14 @@ export const PerformanceModule: React.FC = () => {
   const isAdmin = currentUser.role === 'admin' || isMaster;
   const isLeader = currentUser.role === 'leader' || currentUser.role === 'subleader';
   const isMember = currentUser.role === 'member';
+  const canViewKpiSetting = isMaster || isLeader || isAdmin;
+
+  // Tự động chuyển về tab 'kpi' nếu người dùng hiện tại không phải Master hay Leader
+  useEffect(() => {
+    if (!canViewKpiSetting && activeTableTab === 'set-kpi') {
+      setActiveTableTab('kpi');
+    }
+  }, [canViewKpiSetting, activeTableTab]);
 
   // Responsive state for dual-pane popup
   const [isDesktop, setIsDesktop] = useState<boolean>(() => {
@@ -419,7 +427,16 @@ export const PerformanceModule: React.FC = () => {
         const isEvaluated = currScore !== null;
 
         // Can current user edit visibility of this user?
-        const canEditVisibility = isMaster || (isAdmin && (u.team_id === currentUser.team_id || canViewTeam(u.team_id)));
+        // Mendan record của nhân sự này trong quý đang chọn
+        const mendanRecord = mendanRecords.find(
+          (m) => m.user_id === u.id && m.quarter_id === evalQuarter
+        ) || null;
+
+        const canAccessMendan =
+          isMaster ||
+          (isAdmin && (u.team_id === currentUser.team_id || canViewTeam(u.team_id))) ||
+          (isLeader && canViewTeam(u.team_id)) ||
+          (u.id === currentUser.id && mendanRecord?.visibility_type === 'public');
 
         return {
           user: u,
@@ -437,6 +454,8 @@ export const PerformanceModule: React.FC = () => {
           prevIsPublic,
           isEvaluated,
           canEditVisibility,
+          mendanRecord,
+          canAccessMendan,
         };
       });
   }, [
@@ -450,6 +469,7 @@ export const PerformanceModule: React.FC = () => {
     canViewTeam,
     teams,
     memberEvaluations,
+    mendanRecords,
     evalQuarter,
     evalStatusFilter,
     selectedTeamId,
@@ -627,115 +647,196 @@ export const PerformanceModule: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-16">
-      {/* Top Header & Action Controls */}
-      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 pb-4 border-b border-[#E7E7E4]">
-        <div>
-          <div className="flex items-center space-x-2">
+    <div className="space-y-3.5 pb-8">
+      {/* ========================================================
+          THANH ĐIỀU HƯỚNG & BỘ LỌC HỢP NHẤT TRÊN 1 HÀNG GỌN GÀNG
+         ======================================================== */}
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-2.5 pb-2.5 border-b border-[#E7E7E4]">
+        {/* Nhóm trái: Tiêu đề + Dãy Tab (Thành Tích | Đánh Giá | Đặt KPI) */}
+        <div className="flex items-center flex-wrap gap-2.5 shrink-0">
+          <div className="flex items-center space-x-2 mr-0.5">
             <span className="w-2.5 h-2.5 rounded-full bg-[#7c9cd0]" />
-            <h1 className="text-2xl font-bold tracking-tight text-[#1C1C1A]">Thành Tích</h1>
+            <h1 className="text-xl font-bold tracking-tight text-[#1C1C1A]">Thành Tích</h1>
           </div>
-          <p className="text-xs text-[#8A8A85] mt-1">
-            Tổng quan hiệu suất toàn bộ phận 内部事務代行 & chi tiết từng cá nhân
-          </p>
+
+          <div className="inline-flex p-1 bg-[#F5F5F4] rounded-lg border border-[#E7E7E4] shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTableTab('kpi');
+                setIsSelectMode(false);
+                setSelectedEvalUserIds([]);
+              }}
+              className={`px-3 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTableTab === 'kpi'
+                  ? 'bg-white text-[#1C1C1A] shadow-xs'
+                  : 'text-[#605F5B] hover:text-[#1C1C1A]'
+              }`}
+            >
+              <span>Tổng quan</span>
+              <span
+                className={`text-[11px] px-1.5 py-0.2 rounded-full font-bold ${
+                  activeTableTab === 'kpi' ? 'bg-[#EEF4FF] text-[#2F68D6]' : 'bg-[#E7E7E4] text-[#605F5B]'
+                }`}
+              >
+                {filteredRecords.length}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTableTab('evaluation');
+              }}
+              className={`px-3 py-1 text-xs font-semibold rounded-md transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTableTab === 'evaluation'
+                  ? 'bg-white text-[#1C1C1A] shadow-xs'
+                  : 'text-[#605F5B] hover:text-[#1C1C1A]'
+              }`}
+            >
+              <span>Đánh Giá</span>
+              <span
+                className={`text-[11px] px-1.5 py-0.2 rounded-full font-bold ${
+                  activeTableTab === 'evaluation' ? 'bg-[#EEF4FF] text-[#2F68D6]' : 'bg-[#E7E7E4] text-[#605F5B]'
+                }`}
+              >
+                {evaluationRows.length}
+              </span>
+            </button>
+            {canViewKpiSetting && (
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTableTab('set-kpi');
+                  setIsSelectMode(false);
+                  setSelectedEvalUserIds([]);
+                }}
+                className={`px-3 py-1 text-xs font-semibold rounded-md transition-all flex items-center cursor-pointer ${
+                  activeTableTab === 'set-kpi'
+                    ? 'bg-[#1c3866] text-white shadow-xs font-bold'
+                    : 'text-[#605F5B] hover:text-[#1C1C1A]'
+                }`}
+                title="Thiết lập chỉ tiêu KPI theo từng team (Dành riêng cho MASTER và Leader)"
+              >
+                <span>Đặt KPI</span>
+              </button>
+            )}
+          </div>
+
+          {/* Nút Chọn Nhiều: Chỉ hiện khi ở tab Đánh Giá */}
+          {activeTableTab === 'evaluation' && (isMaster || isAdmin) && (
+            <button
+              type="button"
+              onClick={() => {
+                const nextMode = !isSelectMode;
+                setIsSelectMode(nextMode);
+                if (!nextMode) setSelectedEvalUserIds([]);
+              }}
+              className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                isSelectMode
+                  ? 'bg-[#24487c] text-white border-[#24487c] shadow-xs'
+                  : 'bg-white text-[#334155] border-[#CBD5E1] hover:bg-[#F8FAFC]'
+              }`}
+              title="Bật/Tắt chế độ tích chọn nhiều nhân sự cùng lúc"
+            >
+              <CheckSquare size={13} className="shrink-0" />
+              <span>{isSelectMode ? 'Đóng Chọn' : 'Chọn Nhiều'}</span>
+            </button>
+          )}
         </div>
 
-        {/* Khung chức năng hợp nhất */}
-        <div className="bg-[#FAF9F6] border border-[#E7E7E4] rounded-xl p-1.5 flex flex-wrap items-center gap-2 shadow-2xs">
-          {/* Cụm lọc thời gian: Gom lại thành 1 pulldown duy nhất */}
-          <div className="flex items-center gap-1.5">
-            <div className="relative w-[185px]">
+        {/* Nhóm phải: Các bộ lọc & Các nút thao tác gom chung 1 hàng */}
+        <div className="flex items-center flex-wrap gap-1.5 shrink-0">
+          {activeTableTab !== 'set-kpi' && (
+            <>
+              {/* 1. Ô tìm kiếm */}
+              <div className="relative w-36 sm:w-40 shrink-0">
+                <input
+                  type="text"
+                  value={searchKeyword}
+                  onChange={(e) => setSearchKeyword(e.target.value)}
+                  placeholder="Tìm họ tên, mã NV..."
+                  className="w-full bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg pl-7 pr-6 py-1.5 text-xs text-[#1E293B] focus:outline-hidden focus:border-[#7c9cd0] transition-colors"
+                />
+                <Search
+                  size={12}
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#8A8A85] pointer-events-none"
+                />
+                {searchKeyword && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchKeyword('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[#8A8A85] hover:text-[#1C1C1A]"
+                  >
+                    <X size={12} />
+                  </button>
+                )}
+              </div>
+
+              {/* 2. Lọc Quý */}
               <select
                 value={
-                  selectedMonth !== 'all'
-                    ? `M-${selectedMonth}`
-                    : selectedQuarter !== 'all'
-                    ? `Q-${selectedQuarter}`
-                    : 'all'
+                  activeTableTab === 'kpi'
+                    ? selectedQuarter === 'all'
+                      ? 'Q1'
+                      : selectedQuarter
+                    : evalQuarter
                 }
                 onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === 'all') {
-                    setSelectedMonth('all');
-                    setSelectedQuarter('all');
-                  } else if (val.startsWith('Q-')) {
-                    setSelectedMonth('all');
-                    setSelectedQuarter(val.replace('Q-', ''));
-                  } else if (val.startsWith('M-')) {
-                    const m = Number(val.replace('M-', ''));
-                    setSelectedMonth(m);
-                    // Đồng bộ quý tương ứng với tháng
-                    if ([1, 2, 3].includes(m)) setSelectedQuarter('Q1');
-                    else if ([4, 5, 6].includes(m)) setSelectedQuarter('Q2');
-                    else if ([7, 8, 9].includes(m)) setSelectedQuarter('Q3');
-                    else setSelectedQuarter('Q4');
-                  }
+                  const q = e.target.value;
+                  setSelectedQuarter(q);
+                  setEvalQuarter(q);
+                  setSelectedMonth('all');
                 }}
-                className="w-full appearance-none bg-white border border-[#E7E7E4] rounded-md px-2.5 py-1.5 pr-7 text-xs font-medium text-[#1C1C1A] hover:border-[#8A8A85] focus:outline-hidden transition-colors cursor-pointer"
+                className="bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[#1E293B] cursor-pointer shrink-0 w-[78px]"
               >
-                <option value="all">Tất cả thời gian</option>
-                <optgroup label="Theo Quý">
-                  <option value="Q-Q1">Quý 1/2026</option>
-                  <option value="Q-Q2">Quý 2/2026</option>
-                  <option value="Q-Q3">Quý 3/2026</option>
-                  <option value="Q-Q4">Quý 4/2026</option>
-                </optgroup>
-                <optgroup label="Theo Tháng (Q1 & Q2)">
-                  <option value="M-1">Tháng 01/2026</option>
-                  <option value="M-2">Tháng 02/2026</option>
-                  <option value="M-3">Tháng 03/2026</option>
-                  <option value="M-4">Tháng 04/2026</option>
-                  <option value="M-5">Tháng 05/2026</option>
-                  <option value="M-6">Tháng 06/2026</option>
-                  <option value="M-10">Tháng 10/2026</option>
-                </optgroup>
+                <option value="Q1">Quý 1</option>
+                <option value="Q2">Quý 2</option>
+                <option value="Q3">Quý 3</option>
+                <option value="Q4">Quý 4</option>
               </select>
-              <ChevronDown
-                size={13}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-[#8A8A85] pointer-events-none"
-              />
-            </div>
-          </div>
 
-          <div className="hidden md:block h-4 w-px bg-[#DCDCD8]" />
+              <div className="hidden sm:block h-4 w-px bg-[#CBD5E1] mx-0.5" />
+            </>
+          )}
 
-          {/* Cụm thao tác & chức năng */}
-          <div className="flex items-center flex-wrap gap-1.5">
-            {/* Cụm chức năng gộp KPI (Pulldown: Đặt KPI & Cập Nhật Task Đã Đạt) */}
-            {(isMaster || isLeaderOrAdmin) && (
-              <div className="relative inline-block text-left">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsKpiDropdownOpen((prev) => !prev);
-                  }}
-                  className="flex items-center space-x-1.5 px-3 py-1.5 bg-[#24487c] hover:bg-[#1a355d] text-white rounded-md text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
-                  title="Quản lý KPI: Đặt chỉ tiêu KPI hoặc Cập nhật task đạt được"
-                >
-                  <Target size={13} className="text-[#93C5FD]" />
-                  <span>KPI</span>
-                  <ChevronDown
-                    size={13}
-                    className={`text-white/80 transition-transform duration-150 ${
-                      isKpiDropdownOpen ? 'rotate-180' : ''
-                    }`}
+          {/* 4. Pulldown KPI (Đặt KPI & Cập Nhật Task Đã Đạt) */}
+          {(isMaster || isLeaderOrAdmin) && (
+            <div className="relative inline-block text-left">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsKpiDropdownOpen((prev) => !prev);
+                }}
+                className="flex items-center space-x-1.5 px-2.5 py-1.5 bg-[#24487c] hover:bg-[#1a355d] text-white rounded-md text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+                title="Quản lý KPI: Đặt chỉ tiêu KPI hoặc Cập nhật task đạt được"
+              >
+                <Target size={13} className="text-[#93C5FD]" />
+                <span>KPI</span>
+                <ChevronDown
+                  size={12}
+                  className={`text-white/80 transition-transform duration-150 ${
+                    isKpiDropdownOpen ? 'rotate-180' : ''
+                  }`}
+                />
+              </button>
+
+              {isKpiDropdownOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-20"
+                    onClick={() => setIsKpiDropdownOpen(false)}
                   />
-                </button>
-
-                {isKpiDropdownOpen && (
                   <div
                     onClick={(e) => e.stopPropagation()}
-                    className="absolute left-0 mt-1.5 w-60 rounded-lg bg-white border border-[#E7E7E4] shadow-xl py-1 z-30 animate-in fade-in zoom-in-95 duration-100"
+                    className="absolute right-0 mt-1.5 w-60 rounded-lg bg-white border border-[#E7E7E4] shadow-xl py-1 z-30 animate-in fade-in zoom-in-95 duration-100"
                   >
-                    {/* Item 1: Đặt KPI (chỉ tiêu) */}
-                    {isMaster ? (
+                    {canViewKpiSetting && (
                       <button
                         type="button"
                         onClick={() => {
                           setIsKpiDropdownOpen(false);
-                          setSelectedSetTeamKpiTeamId(null);
-                          setIsSetTeamKpiModalOpen(true);
+                          setActiveTableTab('set-kpi');
                         }}
                         className="w-full text-left px-3.5 py-2.5 text-xs hover:bg-[#F6F6F4] flex items-start space-x-2.5 text-[#1C1C1A] cursor-pointer group"
                       >
@@ -749,16 +850,10 @@ export const PerformanceModule: React.FC = () => {
                           </div>
                         </div>
                       </button>
-                    ) : (
-                      <div className="px-3.5 py-2 text-xs text-[#8A8A85] flex items-center space-x-2 opacity-60">
-                        <Target size={14} />
-                        <span>Đặt KPI (Dành riêng cho Master)</span>
-                      </div>
                     )}
 
                     <div className="border-t border-[#F0F0EE] my-1" />
 
-                    {/* Item 2: Cập Nhật Task Đã Đạt (nhập từ file task / excel) */}
                     <button
                       type="button"
                       onClick={() => {
@@ -779,241 +874,77 @@ export const PerformanceModule: React.FC = () => {
                       </div>
                     </button>
                   </div>
-                )}
-              </div>
-            )}
+                </>
+              )}
+            </div>
+          )}
 
-            {/* Export Excel Button */}
+          {/* 5. Xuất Excel */}
+          <button
+            type="button"
+            onClick={exportCurrentKpis}
+            className="flex items-center space-x-1.5 px-2.5 py-1.5 bg-white border border-[#E7E7E4] text-[#1C1C1A] hover:bg-[#F6F6F4] rounded-md text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+          >
+            <Download size={13} className="text-[#15803D]" />
+            <span>Xuất Excel</span>
+          </button>
+
+          {/* 6. Thang Điểm & Tiêu Chuẩn */}
+          {isLeaderOrAdmin && (
             <button
               type="button"
-              onClick={exportCurrentKpis}
-              className="flex items-center space-x-1.5 px-2.5 py-1.5 bg-white border border-[#E7E7E4] text-[#1C1C1A] hover:bg-[#F6F6F4] rounded-md text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+              onClick={handleOpenRubric}
+              className="flex items-center space-x-1.5 px-2.5 py-1.5 bg-[#24487c] hover:bg-[#1E3A5F] text-white rounded-md text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
             >
-              <Download size={13} className="text-[#15803D]" />
-              <span>Xuất Excel</span>
+              <Sliders size={13} />
+              <span>Thang Điểm & Tiêu Chuẩn</span>
             </button>
-
-            {/* Rubric Criteria Button */}
-            {isLeaderOrAdmin && (
-              <button
-                type="button"
-                onClick={handleOpenRubric}
-                className="flex items-center space-x-1.5 px-2.5 py-1.5 bg-[#24487c] hover:bg-[#1E3A5F] text-white rounded-md text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
-              >
-                <Sliders size={13} />
-                <span>Thang Điểm & Tiêu Chuẩn</span>
-              </button>
-            )}
-          </div>
+          )}
         </div>
       </div>
 
       {/* ========================================================
-          PHẦN 1: 5 THẺ CHỈ SỐ TIẾN ĐỘ TOÀN BỘ PHẬN (KpiHeroCards)
+          PHẦN 1: 5 THẺ CHỈ SỐ TIẾN ĐỘ & PHẦN 2: BẢNG SO SÁNH TIẾN ĐỘ CÁC KHỐI / TỪNG TEAM
+          (Chỉ hiển thị khi đang ở tab Thành Tích)
          ======================================================== */}
-      <KpiHeroCards
-        selectedTeamId={selectedTeamId}
-        selectedTeamName={selectedTeamName}
-        overallCompletionRate={overallCompletionRate}
-        kpiThresholds={kpiThresholds}
-        difference={difference}
-        totalTarget={totalTarget}
-        totalAchieved={totalAchieved}
-        totalMiss={totalMiss}
-        totalLate={totalLate}
-        missRate={missRate}
-        currentQuarter={currentQuarter}
-        getProgressGradientStyle={getProgressGradientStyle}
-      />
+      {activeTableTab === 'kpi' && (
+        <>
+          <KpiHeroCards
+            selectedTeamId={selectedTeamId}
+            selectedTeamName={selectedTeamName}
+            overallCompletionRate={overallCompletionRate}
+            kpiThresholds={kpiThresholds}
+            difference={difference}
+            totalTarget={totalTarget}
+            totalAchieved={totalAchieved}
+            totalMiss={totalMiss}
+            totalLate={totalLate}
+            missRate={missRate}
+            currentQuarter={currentQuarter}
+            getProgressGradientStyle={getProgressGradientStyle}
+          />
+
+          <DivisionProgressTable
+            selectedTeamId={selectedTeamId}
+            setSelectedTeamId={setSelectedTeamId}
+            selectedTeamName={selectedTeamName}
+            comparisonPeriodRecords={comparisonPeriodRecords}
+            kpiThresholds={kpiThresholds}
+            expandedTeamId={expandedTeamId}
+            setExpandedTeamId={setExpandedTeamId}
+            isMaster={isMaster}
+            onOpenSetTeamKpi={(teamId) => {
+              setSelectedSetTeamKpiTeamId(teamId || null);
+              setActiveTableTab('set-kpi');
+            }}
+          />
+        </>
+      )}
 
       {/* ========================================================
-          PHẦN 2: BẢNG SO SÁNH TIẾN ĐỘ CÁC KHỐI / TỪNG TEAM (DivisionProgressTable)
+          PHẦN 4: NỘI DUNG CHI TIẾT THEO TAB ĐANG CHỌN
          ======================================================== */}
-      <DivisionProgressTable
-        selectedTeamId={selectedTeamId}
-        setSelectedTeamId={setSelectedTeamId}
-        selectedTeamName={selectedTeamName}
-        comparisonPeriodRecords={comparisonPeriodRecords}
-        kpiThresholds={kpiThresholds}
-        expandedTeamId={expandedTeamId}
-        setExpandedTeamId={setExpandedTeamId}
-        isMaster={isMaster}
-        onOpenSetTeamKpi={(teamId) => {
-          setSelectedSetTeamKpiTeamId(teamId || null);
-          setIsSetTeamKpiModalOpen(true);
-        }}
-      />
-
-      {/* ========================================================
-          PHẦN 4: BẢNG DỮ LIỆU ĐA NĂNG
-          Tab 1: Bảng Thành Tích & Mendan
-          Tab 2: Bảng Đánh Giá Năng Lực (So sánh Q4 vs Q1, Tăng/Giảm, Công Khai)
-         ======================================================== */}
-      <div className="bg-white border border-[#E7E7E4] rounded-xl shadow-2xs overflow-visible">
-        {/* Table View Tab Header Bar */}
-        <div className="px-5 py-3.5 border-b border-[#F0F0EE] flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-white rounded-t-xl">
-          <div className="flex items-center space-x-2">
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTableTab('kpi');
-                setIsSelectMode(false);
-                setSelectedEvalUserIds([]);
-              }}
-              className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                activeTableTab === 'kpi'
-                  ? 'bg-[#7c9cd0] text-white shadow-xs'
-                  : 'bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0]'
-              }`}
-            >
-              <TrendingUp size={14} />
-              <span>Thành Tích ({filteredRecords.length})</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTableTab('evaluation')}
-              className={`flex items-center space-x-2 px-3.5 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                activeTableTab === 'evaluation'
-                  ? 'bg-[#7c9cd0] text-white shadow-xs'
-                  : 'bg-[#F1F5F9] text-[#475569] hover:bg-[#E2E8F0]'
-              }`}
-            >
-              <FileCheck size={14} />
-              <span>Đánh Giá ({evaluationRows.length})</span>
-            </button>
-          </div>
-
-          {/* Bộ lọc cho Tab Thành Tích (đồng bộ phong cách tinh gọn giống Đánh Giá) */}
-          {activeTableTab === 'kpi' && (
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative w-44 sm:w-52">
-                <input
-                  type="text"
-                  value={searchKeyword}
-                  onChange={(e) => setSearchKeyword(e.target.value)}
-                  placeholder="Tìm họ tên, mã NV..."
-                  className="w-full bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg pl-7 pr-6 py-1 text-xs text-[#1E293B] focus:outline-hidden focus:border-[#7c9cd0] transition-colors"
-                />
-                <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#8A8A85] pointer-events-none" />
-                {searchKeyword && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchKeyword('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[#8A8A85] hover:text-[#1C1C1A]"
-                  >
-                    <X size={12} />
-                  </button>
-                )}
-              </div>
-
-              <div className="flex items-center space-x-1.5 text-xs text-[#64748B]">
-                <span className="font-semibold text-[#1C1C1A]">Trạng thái:</span>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as any)}
-                  className="bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg px-2.5 py-1 text-xs font-semibold text-[#1E293B] cursor-pointer"
-                >
-                  <option value="all">Tất cả ({kpiCounts.all})</option>
-                  <option value="achieved">Đạt KPI (≥100%) ({kpiCounts.achieved})</option>
-                  <option value="under">Chưa đạt KPI ({kpiCounts.under})</option>
-                  <option value="has_miss">Có lỗi Miss ({kpiCounts.hasMiss})</option>
-                  <option value="has_late">Đi trễ ({kpiCounts.hasLate})</option>
-                </select>
-              </div>
-            </div>
-          )}
-
-          {/* Bộ lọc cho Tab Đánh Giá (Lọc theo Quý & Trạng thái Đã đánh giá / Chưa đánh giá) */}
-          {activeTableTab === 'evaluation' && (
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="relative w-40 sm:w-48">
-                <input
-                  type="text"
-                  value={searchKeyword}
-                  onChange={(e) => setSearchKeyword(e.target.value)}
-                  placeholder="Tìm nhân sự..."
-                  className="w-full bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg pl-7 pr-6 py-1 text-xs text-[#1E293B] focus:outline-hidden focus:border-[#7c9cd0] transition-colors"
-                />
-                <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#8A8A85] pointer-events-none" />
-                {searchKeyword && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchKeyword('')}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[#8A8A85] hover:text-[#1C1C1A]"
-                  >
-                    <X size={12} />
-                  </button>
-                )}
-              </div>
-
-              {/* Lọc theo Quý */}
-              <div className="flex items-center space-x-1.5 text-xs text-[#64748B]">
-                <span className="font-semibold text-[#1C1C1A]">Quý:</span>
-                <select
-                  value={evalQuarter}
-                  onChange={(e) => setEvalQuarter(e.target.value)}
-                  className="bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg px-2.5 py-1 text-xs font-semibold text-[#1E293B] cursor-pointer"
-                >
-                  <option value="Q1">Quý 1/2026</option>
-                  <option value="Q2">Quý 2/2026</option>
-                  <option value="Q3">Quý 3/2026</option>
-                  <option value="Q4">Quý 4/2026</option>
-                </select>
-              </div>
-
-              {/* Lọc theo tiến độ Đã/Chưa đánh giá */}
-              <div className="flex items-center space-x-1.5 text-xs text-[#64748B]">
-                <span className="font-semibold text-[#1C1C1A]">Trạng thái:</span>
-                <select
-                  value={evalStatusFilter}
-                  onChange={(e) => setEvalStatusFilter(e.target.value as any)}
-                  className="bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg px-2.5 py-1 text-xs font-semibold text-[#1E293B] cursor-pointer"
-                >
-                  <option value="all">Tất cả ({evalCounts.total})</option>
-                  <option value="completed">✓ Đã đánh giá ({evalCounts.completed})</option>
-                  <option value="pending">Chưa đánh giá ({evalCounts.pending})</option>
-                </select>
-              </div>
-
-              {/* Filter by Visibility (Leader/Admin only) */}
-              {isLeaderOrAdmin && (
-                <div className="flex items-center space-x-1.5 text-xs text-[#64748B]">
-                  <span className="font-semibold text-[#1C1C1A]">Hiển thị:</span>
-                  <select
-                    value={evalVisibilityFilter}
-                    onChange={(e) => setEvalVisibilityFilter(e.target.value as any)}
-                    className="bg-[#F8FAFC] border border-[#CBD5E1] rounded-lg px-2.5 py-1 text-xs font-semibold text-[#1E293B] cursor-pointer"
-                  >
-                    <option value="all">Tất cả</option>
-                    <option value="public">Công Khai (🌐)</option>
-                    <option value="private">Không Công Khai (🔒)</option>
-                  </select>
-                </div>
-              )}
-
-              {/* Chức năng Chọn Nhiều - Hình 4 requirement */}
-              {(isMaster || isAdmin) && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const nextMode = !isSelectMode;
-                    setIsSelectMode(nextMode);
-                    if (!nextMode) setSelectedEvalUserIds([]);
-                  }}
-                  className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer whitespace-nowrap ${
-                    isSelectMode
-                      ? 'bg-[#24487c] text-white border-[#24487c] shadow-xs'
-                      : 'bg-white text-[#334155] border-[#CBD5E1] hover:bg-[#F8FAFC]'
-                  }`}
-                  title="Bật/Tắt chế độ tích chọn nhiều nhân sự cùng lúc"
-                >
-                  <CheckSquare size={13} className="shrink-0" />
-                  <span>{isSelectMode ? 'Đóng Chọn Nhiều' : 'Chọn Nhiều'}</span>
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+      <div className="bg-white border border-[#E7E7E4] rounded-xl shadow-2xs overflow-hidden">
 
         {/* Bulk Action Toolbar for Evaluation Tab */}
         {activeTableTab === 'evaluation' && selectedEvalUserIds.length > 0 && (
@@ -1321,86 +1252,92 @@ export const PerformanceModule: React.FC = () => {
 
                             {/* Dropdown Menu Popup */}
                             {isMenuOpen && (
-                              <div
-                                onClick={(e) => e.stopPropagation()}
-                                className="absolute right-0 top-full mt-1 w-64 bg-white border border-[#CBD5E1] rounded-xl shadow-xl z-50 py-1.5 text-xs animate-in fade-in zoom-in-95 duration-150 divide-y divide-[#F1F5F9]"
-                              >
-                                {/* Group 1: KPI Details */}
-                                <div className="py-1">
+                              <>
+                                <div
+                                  className="fixed inset-0 z-40"
+                                  onClick={() => setOpenActionMenuId(null)}
+                                />
+                                <div
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="absolute right-0 top-full mt-1.5 w-64 bg-white border border-[#E2E8F0] rounded-xl shadow-xl z-50 p-1.5 text-xs animate-in fade-in zoom-in-95 duration-150"
+                                >
+                                {/* Phần 1: KPI & Tiến độ */}
+                                <div className="p-1">
+                                  <div className="px-2.5 py-1 text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider">
+                                    Thành Tích & KPI
+                                  </div>
                                   <button
                                     type="button"
                                     onClick={() => {
                                       setOpenActionMenuId(null);
                                       handleOpenKpiDetail(user, kpiRecord, team);
                                     }}
-                                    className="w-full px-3.5 py-2 text-left flex items-center space-x-2.5 text-[#1E293B] hover:bg-[#EFF6FF] hover:text-[#1D4ED8] transition-colors cursor-pointer"
+                                    className="w-full px-2.5 py-2 rounded-lg text-left flex items-center space-x-2.5 text-[#1E293B] hover:bg-[#EFF6FF] hover:text-[#1D4ED8] transition-colors cursor-pointer group"
                                   >
-                                    <TrendingUp size={14} className="text-[#3B82F6]" />
-                                    <span className="font-semibold">Chi Tiết KPI & Đề Án</span>
+                                    <div className="w-7 h-7 rounded-md bg-[#EFF6FF] text-[#2563EB] flex items-center justify-center shrink-0 group-hover:bg-[#DBEAFE]">
+                                      <TrendingUp size={15} />
+                                    </div>
+                                    <div className="flex flex-col">
+                                      <span className="font-semibold text-xs text-[#0F172A]">Chi Tiết KPI & Đề Án</span>
+                                      <span className="text-[10px] text-[#64748B]">Xem chỉ số và mục tiêu</span>
+                                    </div>
                                   </button>
                                 </div>
 
-                                {/* Group 2: Bảng Đánh Giá (Không công khai cho tất cả) */}
-                                {canAccessUserEvaluation && (
-                                  <div className="py-1">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setOpenActionMenuId(null);
-                                        handleOpenScoring(user, currentQuarter, 2026, !canEditScore);
-                                      }}
-                                      className="w-full px-3.5 py-2 text-left flex items-center space-x-2.5 text-[#1E293B] hover:bg-[#EFF6FF] hover:text-[#1D4ED8] transition-colors cursor-pointer"
-                                    >
-                                      <Edit3 size={14} className="text-[#7c9cd0]" />
-                                      <div className="flex flex-col">
-                                        <span className="font-semibold">Bảng Đánh Giá</span>
-                                        <span className="text-[10px] text-[#64748B]">
-                                          {evalRecord?.total_score ? `Điểm hiện tại: ${evalRecord.total_score}đ` : 'Chưa chấm điểm'}
-                                        </span>
-                                      </div>
-                                    </button>
-                                  </div>
-                                )}
+                                <div className="my-1 border-t border-[#F1F5F9]" />
 
-                                {/* Group 3: Mendan Record (Nội dung Mendan không công khai cho tất cả) */}
+                                {/* Phần 2: Phỏng Vấn Mendan */}
                                 {canAccessUserMendan && (
-                                  <div className="py-1">
+                                  <div className="p-1">
+                                    <div className="px-2.5 py-1 text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider">
+                                      Phỏng Vấn & Mendan
+                                    </div>
                                     <button
                                       type="button"
                                       onClick={() => {
                                         setOpenActionMenuId(null);
                                         handleOpenMendan(user, mendanRecord);
                                       }}
-                                      className="w-full px-3.5 py-2 text-left flex items-center space-x-2.5 text-[#1E293B] hover:bg-[#F0FDF4] hover:text-[#15803D] transition-colors cursor-pointer"
+                                      className="w-full px-2.5 py-2 rounded-lg text-left flex items-center space-x-2.5 text-[#1E293B] hover:bg-[#F0FDF4] hover:text-[#15803D] transition-colors cursor-pointer group"
                                     >
-                                      <ClipboardCheck size={14} className="text-[#15803D]" />
-                                      <div className="flex flex-col">
-                                        <span className="font-semibold">
-                                          {isLeader || isAdmin || isMaster ? 'Lập / Xem Biên Bản Mendan' : 'Xem Biên Bản Mendan'}
-                                        </span>
-                                        <span className="text-[10px] text-[#64748B]">
-                                          {mendanRecord?.status === 'completed' ? '✓ Đã phỏng vấn' : 'Chưa phỏng vấn'}
-                                        </span>
+                                      <div className="w-7 h-7 rounded-md bg-[#F0FDF4] text-[#15803D] flex items-center justify-center shrink-0 group-hover:bg-[#DCFCE7]">
+                                        <ClipboardCheck size={15} />
+                                      </div>
+                                      <div className="flex flex-col flex-1 min-w-0">
+                                        <div className="flex items-center justify-between">
+                                          <span className="font-semibold text-xs text-[#0F172A]">
+                                            {isLeader || isAdmin || isMaster ? 'Biên Bản Mendan' : 'Xem Biên Bản Mendan'}
+                                          </span>
+                                          <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${
+                                            mendanRecord?.status === 'completed'
+                                              ? 'bg-[#DCFCE7] text-[#15803D]'
+                                              : 'bg-[#F1F5F9] text-[#64748B]'
+                                          }`}>
+                                            {mendanRecord?.status === 'completed' ? '✓ Đã xong' : 'Chưa họp'}
+                                          </span>
+                                        </div>
+                                        <span className="text-[10px] text-[#64748B] truncate">Nội dung trao đổi định kỳ</span>
                                       </div>
                                     </button>
+
                                     {/* Quick Mendan Visibility Toggle */}
                                     {(isMaster || (isAdmin && (user.team_id === currentUser.team_id || canViewTeam(user.team_id)))) && (
-                                      <div className="px-3.5 py-1.5 flex items-center justify-between bg-[#F8FAFC] text-[11px]">
-                                        <span className="text-[#64748B] flex items-center space-x-1">
+                                      <div className="mt-1 px-2.5 py-1.5 rounded-lg flex items-center justify-between bg-[#F8FAFC] border border-[#E2E8F0] text-[11px]">
+                                        <span className="text-[#64748B] flex items-center space-x-1 text-[11px]">
                                           {mendanRecord?.visibility_type === 'public' ? (
-                                            <Globe size={11} className="text-[#15803D]" />
+                                            <Globe size={12} className="text-[#15803D]" />
                                           ) : (
-                                            <Lock size={11} className="text-[#D97706]" />
+                                            <Lock size={12} className="text-[#D97706]" />
                                           )}
-                                          <span>Hiển thị Mendan:</span>
+                                          <span className="font-medium">Hiển thị:</span>
                                         </span>
                                         <button
                                           type="button"
                                           onClick={() => toggleSingleMendanVisibility(user.id, currentQuarter)}
                                           className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors cursor-pointer ${
                                             mendanRecord?.visibility_type === 'public'
-                                              ? 'bg-[#DCFCE7] text-[#15803D] border-[#86EFAC]'
-                                              : 'bg-[#FEF3C7] text-[#B45309] border-[#FCD34D]'
+                                              ? 'bg-[#DCFCE7] text-[#15803D] border-[#86EFAC] hover:bg-[#BBF7D0]'
+                                              : 'bg-[#FEF3C7] text-[#B45309] border-[#FCD34D] hover:bg-[#FDE68A]'
                                           }`}
                                         >
                                           {mendanRecord?.visibility_type === 'public' ? 'Công Khai' : 'Không Công Khai'}
@@ -1410,19 +1347,32 @@ export const PerformanceModule: React.FC = () => {
                                   </div>
                                 )}
 
-                                {/* Group 4: Awards */}
-                                <div className="py-1">
+                                <div className="my-1 border-t border-[#F1F5F9]" />
+
+                                {/* Phần 3: Khen Thưởng */}
+                                <div className="p-1">
+                                  <div className="px-2.5 py-1 text-[10px] font-bold text-[#94A3B8] uppercase tracking-wider">
+                                    Khen Thưởng
+                                  </div>
                                   <button
                                     type="button"
                                     onClick={() => {
                                       setOpenActionMenuId(null);
                                       setViewingAwardsModal({ user, awards: userAwards });
                                     }}
-                                    className="w-full px-3.5 py-2 text-left flex items-center space-x-2.5 text-[#1E293B] hover:bg-[#FEF9C3] hover:text-[#B45309] transition-colors cursor-pointer"
+                                    className="w-full px-2.5 py-2 rounded-lg text-left flex items-center space-x-2.5 text-[#1E293B] hover:bg-[#FEF9C3]/50 hover:text-[#B45309] transition-colors cursor-pointer group"
                                   >
-                                    <Award size={14} className="text-[#CA8A04]" />
-                                    <span className="font-semibold">Xem Danh Sách Khen Thưởng ({userAwards.length})</span>
+                                    <div className="w-7 h-7 rounded-md bg-[#FEF9C3] text-[#CA8A04] flex items-center justify-center shrink-0 group-hover:bg-[#FEF08A]">
+                                      <Award size={15} />
+                                    </div>
+                                    <div className="flex flex-col flex-1">
+                                      <span className="font-semibold text-xs text-[#0F172A]">Xem Khen Thưởng</span>
+                                      <span className="text-[10px] text-[#64748B]">
+                                        {userAwards.length > 0 ? `${userAwards.length} danh hiệu đã đạt` : 'Chưa có danh hiệu'}
+                                      </span>
+                                    </div>
                                   </button>
+
                                   {(isAdmin || isLeader) && (
                                     <button
                                       type="button"
@@ -1430,14 +1380,20 @@ export const PerformanceModule: React.FC = () => {
                                         setOpenActionMenuId(null);
                                         handleOpenAward(user);
                                       }}
-                                      className="w-full px-3.5 py-2 text-left flex items-center space-x-2.5 text-[#1E293B] hover:bg-[#EFF6FF] hover:text-[#1D4ED8] transition-colors cursor-pointer"
+                                      className="w-full px-2.5 py-2 rounded-lg text-left flex items-center space-x-2.5 text-[#1E293B] hover:bg-[#EFF6FF] hover:text-[#1D4ED8] transition-colors cursor-pointer group mt-0.5"
                                     >
-                                      <Trophy size={14} className="text-[#3B82F6]" />
-                                      <span className="font-semibold">Ghi Nhận Khen Thưởng Mới</span>
+                                      <div className="w-7 h-7 rounded-md bg-[#EFF6FF] text-[#2563EB] flex items-center justify-center shrink-0 group-hover:bg-[#DBEAFE]">
+                                        <Trophy size={15} />
+                                      </div>
+                                      <div className="flex flex-col">
+                                        <span className="font-semibold text-xs text-[#0F172A]">Ghi Nhận Khen Thưởng</span>
+                                        <span className="text-[10px] text-[#64748B]">Tuyên dương thành tích mới</span>
+                                      </div>
                                     </button>
                                   )}
                                 </div>
                               </div>
+                            </>
                             )}
                           </div>
                         </td>
@@ -1459,10 +1415,11 @@ export const PerformanceModule: React.FC = () => {
                 <col style={{ width: '230px' }} />
                 <col style={{ width: '100px' }} />
                 <col style={{ width: '110px' }} />
+                <col style={{ width: '150px' }} />
+                <col style={{ width: '150px' }} />
+                <col style={{ width: '110px' }} />
+                <col style={{ width: '130px' }} />
                 <col style={{ width: '160px' }} />
-                <col style={{ width: '160px' }} />
-                <col style={{ width: '120px' }} />
-                <col style={{ width: '170px' }} />
                 <col style={{ width: '110px' }} />
               </colgroup>
               <thead>
@@ -1499,24 +1456,33 @@ export const PerformanceModule: React.FC = () => {
                   <th className="w-[230px] min-w-[230px] py-3.5 px-4 text-left whitespace-nowrap">Nhân Sự</th>
                   <th className="w-[100px] min-w-[100px] py-3.5 px-2 text-center whitespace-nowrap">Cấp Bậc</th>
                   <th className="w-[110px] min-w-[110px] py-3.5 px-2 text-center whitespace-nowrap">Team</th>
-                  <th className="w-[160px] min-w-[160px] py-3.5 px-3 text-center whitespace-nowrap">
-                    Điểm Quý Trước ({evalQuarter === 'Q1' ? 'Q4/2025' : `${evalQuarter === 'Q2' ? 'Q1' : evalQuarter === 'Q3' ? 'Q2' : 'Q3'}/2026`})
+                  <th className="w-[150px] min-w-[150px] py-3.5 px-3 text-center whitespace-nowrap">
+                    <span>Điểm Quý Trước</span>{' '}
+                    <span className="text-[10px] text-[#5578a8] font-medium normal-case">
+                      ({evalQuarter === 'Q1' ? 'Q4' : evalQuarter === 'Q2' ? 'Q1' : evalQuarter === 'Q3' ? 'Q2' : 'Q3'})
+                    </span>
                   </th>
-                  <th className="w-[160px] min-w-[160px] py-3.5 px-3 text-center whitespace-nowrap">Điểm Quý Này ({evalQuarter}/2026)</th>
-                  <th className="w-[120px] min-w-[120px] py-3.5 px-3 text-center whitespace-nowrap">Tăng / Giảm</th>
-                  <th className="w-[170px] min-w-[170px] py-3.5 px-3 text-center whitespace-nowrap">Chế Độ Hiển Thị</th>
+                  <th className="w-[150px] min-w-[150px] py-3.5 px-3 text-center whitespace-nowrap">
+                    <span>Điểm Quý Này</span>{' '}
+                    <span className="text-[10px] text-[#24487c] font-bold normal-case">
+                      ({evalQuarter})
+                    </span>
+                  </th>
+                  <th className="w-[110px] min-w-[110px] py-3.5 px-3 text-center whitespace-nowrap">Tăng / Giảm</th>
+                  <th className="w-[130px] min-w-[130px] py-3.5 px-3 text-center whitespace-nowrap">Mendan</th>
+                  <th className="w-[160px] min-w-[160px] py-3.5 px-3 text-center whitespace-nowrap">Chế Độ Hiển Thị</th>
                   <th className="w-[110px] min-w-[110px] py-3.5 px-3 text-center whitespace-nowrap">Thao Tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#F0F0EE]">
                 {evaluationRows.length === 0 ? (
                   <tr>
-                    <td colSpan={isSelectMode ? 9 : 8} className="py-12 text-center text-xs text-[#8A8A85]">
+                    <td colSpan={isSelectMode ? 10 : 9} className="py-12 text-center text-xs text-[#8A8A85]">
                       Không có dữ liệu đánh giá phù hợp với bộ lọc hiện tại.
                     </td>
                   </tr>
                 ) : (
-                  evaluationRows.map(({ user, team, prevQuarterId, prevYear, currQuarterId, currYear, prevScore, currScore, scoreDiff, isPublic, prevIsPublic, isEvaluated, canEditVisibility, currEval }) => {
+                  evaluationRows.map(({ user, team, prevQuarterId, prevYear, currQuarterId, currYear, prevScore, currScore, scoreDiff, isPublic, prevIsPublic, isEvaluated, canEditVisibility, currEval, mendanRecord, canAccessMendan }) => {
                     const rankConfig = user?.rank ? RANK_STYLE_CONFIG[user.rank] : null;
                     const memberDisplayName = cleanName(user.full_name);
                     const isChecked = selectedEvalUserIds.includes(user.id);
@@ -1577,13 +1543,8 @@ export const PerformanceModule: React.FC = () => {
                               className="w-9 h-9 rounded-full object-cover border border-[#E7E7E4] shrink-0 shadow-2xs"
                             />
                             <div className="truncate">
-                              <div className="font-bold text-xs text-[#1C1C1A] truncate group-hover:text-[#24487c] transition-colors flex items-center space-x-1.5">
-                                <span className="truncate">{memberDisplayName}</span>
-                                {isEvaluated && (
-                                  <span className="inline-flex items-center text-[#16A34A] shrink-0" title={`Đã đánh giá ${currQuarterId}/${currYear}`}>
-                                    <CheckCircle2 size={14} className="shrink-0" />
-                                  </span>
-                                )}
+                              <div className="font-bold text-xs text-[#1C1C1A] truncate group-hover:text-[#24487c] transition-colors">
+                                {memberDisplayName}
                               </div>
                               <div className="text-[10px] text-[#8A8A85] font-mono mt-0.5">
                                 {user.employee_code}
@@ -1702,8 +1663,40 @@ export const PerformanceModule: React.FC = () => {
                           )}
                         </td>
 
-                        {/* 8. Chế Độ Hiển Thị */}
-                        <td className="w-[170px] min-w-[170px] py-3.5 px-3 text-center whitespace-nowrap">
+                        {/* 8. Mendan (Biên bản phỏng vấn 1-on-1 gộp vào bảng đánh giá) */}
+                        <td className="w-[130px] min-w-[130px] py-3.5 px-3 text-center whitespace-nowrap">
+                          {canAccessMendan ? (
+                            mendanRecord?.status === 'completed' ? (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenMendan(user, mendanRecord)}
+                                className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-md text-xs font-semibold bg-[#F0FDF4] hover:bg-[#DCFCE7] text-[#15803D] border border-[#86EFAC] transition-colors cursor-pointer whitespace-nowrap shadow-2xs"
+                                title="Đã hoàn thành phỏng vấn Mendan - Bấm để xem/sửa biên bản"
+                              >
+                                <ClipboardCheck size={13} className="shrink-0 text-[#15803D]" />
+                                <span>Đã họp</span>
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenMendan(user, mendanRecord)}
+                                className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-[#F8FAFC] hover:bg-[#F1F5F9] text-[#64748B] hover:text-[#1E293B] border border-[#CBD5E1] transition-colors cursor-pointer whitespace-nowrap"
+                                title="Chưa phỏng vấn Mendan - Bấm để tạo biên bản"
+                              >
+                                <ClipboardCheck size={13} className="shrink-0 text-[#94A3B8]" />
+                                <span>Chưa họp</span>
+                              </button>
+                            )
+                          ) : (
+                            <span className="text-[#8A8A85] text-xs whitespace-nowrap" title="Bảo mật (Chỉ Admin & Master)">
+                              <Lock size={12} className="inline text-[#8A8A85] mr-1" />
+                              <span className="text-[11px]">Bảo mật</span>
+                            </span>
+                          )}
+                        </td>
+
+                        {/* 9. Chế Độ Hiển Thị */}
+                        <td className="w-[160px] min-w-[160px] py-3.5 px-3 text-center whitespace-nowrap">
                           {isPublic ? (
                             <button
                               type="button"
@@ -1776,6 +1769,25 @@ export const PerformanceModule: React.FC = () => {
                 )}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* TAB 3: THIẾT LẬP CHỈ TIÊU KPI (DÀNH CHO MASTER & LEADER) */}
+        {activeTableTab === 'set-kpi' && canViewKpiSetting && (
+          <div className="overflow-x-auto">
+            <SetTeamKpiModal
+              isOpen={true}
+              isEmbedded={true}
+              onClose={() => setActiveTableTab('kpi')}
+              teams={teams}
+              users={users}
+              kpiRecords={kpiRecords}
+              currentQuarter={currentQuarter}
+              onSaveKpiTargets={(quarter, year, updates) => {
+                bulkUpdateKpiTargets(quarter, year, updates);
+                setActiveTableTab('kpi');
+              }}
+            />
           </div>
         )}
       </div>

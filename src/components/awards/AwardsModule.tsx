@@ -269,9 +269,6 @@ export const AwardsModule: React.FC = () => {
           <h1 className="text-2xl font-bold tracking-tight text-[#1C1C1A]">
             Khen Thưởng & Bảng Vàng Vinh Danh (表彰台)
           </h1>
-          <p className="text-xs text-[#8A8A85] mt-1">
-            Ghi nhận và tôn vinh những đóng góp xuất sắc. Admin đề xuất thành viên ở bất kỳ team nào, Master xét duyệt và chỉ định chế độ hiển thị.
-          </p>
         </div>
 
         <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0">
